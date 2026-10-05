@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>uksf-patcher</AssemblyName>
+    <RootNamespace>UksfPatcher</RootNamespace>
+    <BisRoot>$(MSBuildThisFileDirectory)..\..\..\_ref\UKSFTA-BIS</BisRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(BisRoot)\BIS.Core\BIS.Core.csproj" />
+    <ProjectReference Include="$(BisRoot)\BIS.P3D\BIS.P3D.csproj" />
+    <ProjectReference Include="$(BisRoot)\BIS.RTM\BIS.RTM.csproj" />
+  </ItemGroup>
+
+</Project>

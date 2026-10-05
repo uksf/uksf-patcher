@@ -1,0 +1,85 @@
+# uksf-patcher
+
+Patches Arma 3 dependency PBOs in place from declarative, hash-pinned manifests. Nobody edits a dependency PBO by hand: the manifests are the source of truth, and the modpack build runs this CLI before it signs the dependencies.
+
+## Usage
+
+```
+uksf-patcher apply  --addons <dir> --patches <dir> --state <dir> [--dry-run]
+uksf-patcher verify --addons <dir> --patches <dir> --state <dir>
+uksf-patcher inspect <pbo> [filter]           list entries (packing, sizes, names)
+uksf-patcher hash <pbo> <path-in-pbo>         sha256 of an asset, for pinning
+uksf-patcher p3d <pbo> <path-in-pbo> [lod]    ODOL summary: skeleton, LODs, sections, selections
+```
+
+- `--addons`: the `@mod/addons` folder that holds the PBOs.
+- `--patches`: a folder of manifests, one `*.json` per target PBO.
+- `--state`: where the tool keeps per-PBO state and a pristine backup of every PBO it patched. It must be outside the mod folder, or the backups would ship to clients. The build keeps it between builds.
+- Exit code 0 on success. Exit code 1 on any error (with a message on stderr), or when `verify` finds a PBO that is not patched.
+
+`apply`, for each manifest:
+
+| Current PBO | Action |
+|---|---|
+| equals the recorded patched sha256, patch set unchanged | skip (`up to date`); the file and its timestamp stay untouched |
+| equals the recorded patched sha256, patch set changed | re-patch from the pristine backup |
+| anything else (first run, pristine, or an upstream update) | treat the current file as pristine and patch it |
+
+The patch-set hash covers the manifest bytes, every file a `replace-file` op names, and the tool's output revision. Every asset's pinned sha256 is checked before any op runs. A mismatch stops the run with the PBO, the asset, and the expected and actual hashes, and writes nothing. The tool writes the patched PBO to a temporary file and moves it over the original. The move replaces the directory entry, so a hard-linked original elsewhere is not changed. When a manifest is removed, the next `apply` restores the pristine PBO from the backup.
+
+`verify` re-applies every manifest to its pristine backup and checks that the result equals the PBO on disk.
+
+Output PBOs are byte-identical to the input apart from the edited entries and the trailer SHA1. Unedited entry blocks, the header bytes, mangled (obfuscated) names and timestamps are copied verbatim. Edited entries are written uncompressed (packing 0, original size = data size).
+
+## Manifest
+
+```json
+{
+  "format": 1,
+  "pbo": "RHICC.pbo",
+  "description": "free text, ignored",
+  "assets": [
+    {
+      "path": "rhicc\\addons\\rhicc.p3d",
+      "sha256": "<sha256 of the pristine, decompressed asset; uksf-patcher hash>",
+      "ops": [
+        { "op": "set-bone-parent", "bone": "otocvez_2", "from": "swing_2", "to": "" }
+      ]
+    }
+  ]
+}
+```
+
+`path` matches case-insensitively, with or without the PBO prefix. Ops run in order on the asset bytes. JSON comments are allowed.
+
+## Ops
+
+| Op | Fields | Asset |
+|---|---|---|
+| `replace-file` | `source`: file next to the manifest | any |
+| `text-replace` | `find`, `replace`, `count` (default 1; exact number of matches required) | text (refuses rapified configs) |
+| `rtm-strip-bones` | `bones`: names to remove from the bone table and every frame | `RTM_0101` |
+| `set-bone-parent` | `bone`, `from` (current parent, checked), `to` (`""` or an existing bone; cycles rejected) | ODOL v73/74 |
+| `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
+| `convex-hull-component` | `lods`, `component` | ODOL v73/74 |
+| `remove-degenerate-faces` | `lods` (default all), `minArea` (default 1e-8 m²), `expectedRemoved` | MLOD |
+
+LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`, `landContact`, `hitpoints`, ..., or a visual resolution such as `0`.
+
+ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output.
+
+- `remove-component` deletes the component's named selection and remaps the LOD's proxy selection indices. It is for proxy triangles that were named as components, which Arma reports as `Strange convex component`.
+- `convex-hull-component` replaces the component's faces with the triangles of its convex hull. It keeps every vertex and the selection name, adds the hull faces to every selection that held all of the old faces, and recomputes the section face ranges. The winding follows the LOD's other components. It refuses flat components, and a selection that holds only part of the component. The hull changes the collision shape, so check the result: a hull of an open L-shaped wall fills the corner.
+- `remove-degenerate-faces` drops faces whose area is below `minArea` from every face-indexed tagg (selections, `#Selected#`, `#Lock#`, `#UVSet#`). Arma logs these faces as `very small normal 0,0,0` when it binarises the model at load.
+
+## Build and test
+
+```
+scripts/fetch-specimens.sh        # copies the test PBOs into testdata/ (git-ignored)
+dotnet test
+dotnet build src/UksfPatcher -c Release
+```
+
+The project references `D:/Arma/_ref/UKSFTA-BIS` (BIS.Core, BIS.P3D, BIS.RTM) through relative project paths. The library's ODOL reader prints debug lines to stderr; the tool mutes stderr while it parses.
+
+Example manifests for real defects are in `examples/patches`. See `docs/ingame-check.md` for the in-game check.

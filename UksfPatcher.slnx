@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UksfPatcher/UksfPatcher.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UksfPatcher.Tests/UksfPatcher.Tests.csproj" />
+  </Folder>
+  <Project Path="../_ref/UKSFTA-BIS/BIS.Core/BIS.Core.csproj" />
+  <Project Path="../_ref/UKSFTA-BIS/BIS.P3D/BIS.P3D.csproj" />
+  <Project Path="../_ref/UKSFTA-BIS/BIS.PAA/BIS.PAA.csproj" />
+  <Project Path="../_ref/UKSFTA-BIS/BIS.RTM/BIS.RTM.csproj" />
+</Solution>

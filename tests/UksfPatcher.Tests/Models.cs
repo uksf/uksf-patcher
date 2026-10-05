@@ -1,0 +1,25 @@
+using System.Collections.Concurrent;
+using UksfPatcher.Pbo;
+
+namespace UksfPatcher.Tests;
+
+public static class Models
+{
+    public const string RhiccPbo = "RHICC.pbo";
+    public const string Rhicc = @"rhicc\addons\rhicc.p3d";
+    public const string PumaPbo = "rksla3-pumahc.pbo";
+    public const string PumaTroop = @"rksla3\rksla3-pumahc\rksla3_puma_hc1_troop.p3d";
+    public const string RncPbo = "rnc_apartments.pbo";
+    public const string RncApartment = @"variant1\15x15l\rnc_apt_v1_15x15l_c1_f3.p3d";
+    public const string MissilesPbo = "Ballistic_missiles.pbo";
+
+    private static readonly ConcurrentDictionary<(string, string), byte[]> Cache = new();
+
+    public static byte[] Load(string pbo, string asset) =>
+        (byte[])Cache.GetOrAdd((pbo, asset), key =>
+        {
+            var file = RawPbo.Read(TestData.Specimen(key.Item1));
+            var entry = file.Find(key.Item2) ?? throw new FileNotFoundException(key.Item2);
+            return file.ReadData(entry);
+        }).Clone();
+}
