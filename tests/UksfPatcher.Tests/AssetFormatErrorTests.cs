@@ -51,4 +51,14 @@ public sealed class AssetFormatErrorTests : IDisposable
 
         Assert.Contains("model.p3d", e.Message);
     }
+
+    [Fact]
+    public void PlainLibraryExceptionBecomesAControlledError()
+    {
+        // BIS ODOL parsing throws a plain Exception for an animation type it does not know.
+        var e = Assert.Throws<PatchException>(() => AssetFormat.Guard<int>("x.pbo:model.p3d", () => throw new Exception("Unknown AnimType encountered: 9")));
+
+        Assert.Contains("x.pbo:model.p3d", e.Message);
+        Assert.Contains("Unknown AnimType", e.Message);
+    }
 }

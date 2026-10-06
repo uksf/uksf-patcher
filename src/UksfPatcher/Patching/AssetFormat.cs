@@ -8,9 +8,10 @@ public static class AssetFormat
         {
             return read();
         }
-        catch (Exception e) when (e is ArgumentException or EndOfStreamException or IndexOutOfRangeException or FormatException or InvalidDataException or OverflowException)
+        // The BIS library signals bad input with several exception types, some of them plain Exception.
+        catch (Exception e) when (e is not PatchException and not OutOfMemoryException)
         {
-            throw new PatchException($"{where}: cannot read the asset: {e.Message}");
+            throw new PatchException($"{where}: cannot read the asset ({e.GetType().Name}): {e.Message}");
         }
     }
 }

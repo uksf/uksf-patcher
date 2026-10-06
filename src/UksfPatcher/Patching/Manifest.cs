@@ -66,8 +66,8 @@ public sealed class Manifest
             throw new PatchException($"{file}: \"format\" must be {FormatVersion}");
         }
 
-        var pbo = Required(root, "pbo", file).GetString()!;
-        var pristineSha = Required(root, "pristineSha256", file).GetString()!.ToLowerInvariant();
+        var pbo = RequiredString(root, "pbo", file);
+        var pristineSha = RequiredString(root, "pristineSha256", file).ToLowerInvariant();
         if (pristineSha.Length != 64 || !pristineSha.All(Uri.IsHexDigit))
         {
             throw new PatchException($"{file}: \"pristineSha256\" must be the 64-digit sha256 of the pristine PBO (uksf-patcher hash <pbo>)");
@@ -75,8 +75,8 @@ public sealed class Manifest
         var assets = new List<AssetPatch>();
         foreach (var a in Required(root, "assets", file).EnumerateArray())
         {
-            var path = Required(a, "path", file).GetString()!;
-            var sha = Required(a, "sha256", file).GetString()!.ToLowerInvariant();
+            var path = RequiredString(a, "path", file);
+            var sha = RequiredString(a, "sha256", file).ToLowerInvariant();
             var ops = Required(a, "ops", file).EnumerateArray().Select(o => o.Clone()).ToList();
             if (ops.Count == 0)
             {
@@ -116,4 +116,10 @@ public sealed class Manifest
 
     private static JsonElement Required(JsonElement e, string name, string file) =>
         e.TryGetProperty(name, out var v) ? v : throw new PatchException($"{file}: missing \"{name}\"");
+
+    private static string RequiredString(JsonElement e, string name, string file)
+    {
+        var v = Required(e, name, file);
+        return v.ValueKind == JsonValueKind.String ? v.GetString()! : throw new PatchException($"{file}: \"{name}\" must be a string");
+    }
 }

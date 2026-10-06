@@ -94,12 +94,13 @@ public sealed class PatchSafetyTests : IDisposable
         var damaged = File.ReadAllBytes(store.BackupPath(RunnerSandbox.PboName));
         damaged[OtherEntry(damaged).DataOffset] ^= 0xff;
         File.WriteAllBytes(store.BackupPath(RunnerSandbox.PboName), damaged);
-        var state = JsonNode.Parse(File.ReadAllText(store.StatePath(RunnerSandbox.PboName)))!;
-        state["PristineSha256"] = StateStore.Sha256(damaged);
-        File.WriteAllText(store.StatePath(RunnerSandbox.PboName), state.ToJsonString());
         var manifest = JsonNode.Parse(File.ReadAllText(_box.ManifestPath))!;
         manifest["pristineSha256"] = StateStore.Sha256(damaged);
         File.WriteAllText(_box.ManifestPath, manifest.ToJsonString());
+        var state = JsonNode.Parse(File.ReadAllText(store.StatePath(RunnerSandbox.PboName)))!;
+        state["PristineSha256"] = StateStore.Sha256(damaged);
+        state["PatchSetSha256"] = Manifest.Load(_box.ManifestPath).PatchSetHash;
+        File.WriteAllText(store.StatePath(RunnerSandbox.PboName), state.ToJsonString());
 
         var verify = _box.Run("verify");
 
@@ -137,12 +138,33 @@ public sealed class PatchSafetyTests : IDisposable
         var manifest = JsonNode.Parse(File.ReadAllText(_box.ManifestPath))!;
         manifest["pristineSha256"] = wrong;
         File.WriteAllText(_box.ManifestPath, manifest.ToJsonString());
+        // Keep the recorded patch set in step, so verify reaches the backup check instead of reporting NOT APPLIED.
+        var store = new StateStore(_box.State);
+        var state = JsonNode.Parse(File.ReadAllText(store.StatePath(RunnerSandbox.PboName)))!;
+        state["PatchSetSha256"] = Manifest.Load(_box.ManifestPath).PatchSetHash;
+        File.WriteAllText(store.StatePath(RunnerSandbox.PboName), state.ToJsonString());
 
         var verify = _box.Run("verify");
 
         Assert.Equal(1, verify.Code);
         Assert.Contains($"expected sha256 {wrong}", verify.Error);
         Assert.Contains($"actual {StateStore.Sha256(_box.Pristine)}", verify.Error);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("42")]
+    public void NonStringPristinePinIsAControlledError(string value)
+    {
+        _box.WriteManifest(_box.RvmatSha(), ReplaceX);
+        var manifest = JsonNode.Parse(File.ReadAllText(_box.ManifestPath))!;
+        manifest["pristineSha256"] = JsonNode.Parse(value);
+        File.WriteAllText(_box.ManifestPath, manifest.ToJsonString());
+
+        var result = _box.Run("apply");
+
+        Assert.Equal(1, result.Code);
+        Assert.Contains("\"pristineSha256\" must be a string", result.Error);
     }
 
     [Fact]
