@@ -122,6 +122,29 @@ public sealed class RawPbo
         return hash.AsSpan().SequenceEqual(Bytes.AsSpan(Bytes.Length - 20));
     }
 
+    public static void RequireValidTrailer(byte[] bytes, string label)
+    {
+        RawPbo pbo;
+        try
+        {
+            pbo = Parse(bytes);
+        }
+        catch (PboFormatException e)
+        {
+            throw new Patching.PatchException($"{label}: cannot parse: {e.Message}");
+        }
+
+        pbo.RequireValidTrailer(label);
+    }
+
+    public void RequireValidTrailer(string label)
+    {
+        if (!TrailerHashValid())
+        {
+            throw new Patching.PatchException($"{label}: the SHA-1 trailer is invalid; the PBO is damaged");
+        }
+    }
+
     public PboEntry? Find(string path)
     {
         var wanted = Normalise(path);

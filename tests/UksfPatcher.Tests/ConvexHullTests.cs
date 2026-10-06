@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Reflection;
 using UksfPatcher.Ops;
 using UksfPatcher.P3d;
 using UksfPatcher.Patching;
@@ -85,6 +86,38 @@ public class ConvexHullTests(ITestOutputHelper log)
                 Assert.Equal(Faces(b, sb), Faces(a, sa));
             }
         }
+    }
+
+    [Fact]
+    public void TrailingEmptySectionStaysEmptyAfterTheHull()
+    {
+        var odol = OdolFile.Parse(Models.Load(Models.RncPbo, Models.RncApartment), "rnc");
+        var lod = odol.Lods.Single(l => LodNames.Matches(l.Resolution, LodNames.Resolution("geometry")));
+        var empty = (BIS.P3D.ODOL.Section)typeof(object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(lod.Sections[^1], null)!;
+        LibraryAccess.Set(empty, nameof(BIS.P3D.ODOL.Section.FaceLowerIndex), (int)lod.Polygons.Unused1);
+        LibraryAccess.Set(empty, nameof(BIS.P3D.ODOL.Section.FaceUpperIndex), (int)lod.Polygons.Unused1);
+        LibraryAccess.Set(lod, nameof(BIS.P3D.ODOL.LOD.Sections), lod.Sections.Append(empty).ToArray());
+        var bytes = OdolFile.Serialise(odol);
+
+        var patched = new ConvexHullComponentOp().Apply(bytes,
+            TestData.Op("""{"op":"convex-hull-component","lods":["geometry"],"component":"Component113"}"""), TestData.Context());
+
+        var after = OdolFile.Parse(patched, "rnc").Lods.Single(l => LodNames.Matches(l.Resolution, LodNames.Resolution("geometry")));
+        Assert.Equal((int)after.Polygons.Unused1, after.Sections[^1].FaceLowerIndex);
+        Assert.Equal((int)after.Polygons.Unused1, after.Sections[^1].FaceUpperIndex);
+        OdolFaces.SectionFaceRanges(after, "geometry");
+    }
+
+    [Fact]
+    public void SectionsThatNoLongerPartitionTheFacesAreRejected()
+    {
+        var odol = OdolFile.Parse(Models.Load(Models.RncPbo, Models.RncApartment), "rnc");
+        var lod = odol.Lods.Single(l => LodNames.Matches(l.Resolution, LodNames.Resolution("geometry")));
+        LibraryAccess.Set(lod.Sections[^1], nameof(BIS.P3D.ODOL.Section.FaceLowerIndex), 0);
+
+        var e = Assert.Throws<PatchException>(() => OdolFaces.RequirePartitions(odol, "rnc"));
+
+        Assert.Contains("sections do not partition", e.Message);
     }
 
     private static List<string> Faces(BIS.P3D.ODOL.LOD lod, BIS.P3D.ODOL.NamedSelection s) =>

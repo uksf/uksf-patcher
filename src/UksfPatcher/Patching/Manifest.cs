@@ -11,10 +11,11 @@ public sealed class Manifest
 {
     public const int FormatVersion = 1;
 
-    private Manifest(string file, string pbo, IReadOnlyList<AssetPatch> assets, string patchSetHash)
+    private Manifest(string file, string pbo, string pristineSha256, IReadOnlyList<AssetPatch> assets, string patchSetHash)
     {
         File = file;
         Pbo = pbo;
+        PristineSha256 = pristineSha256;
         Assets = assets;
         PatchSetHash = patchSetHash;
     }
@@ -22,6 +23,7 @@ public sealed class Manifest
     public string File { get; }
     public string Directory => System.IO.Path.GetDirectoryName(File)!;
     public string Pbo { get; }
+    public string PristineSha256 { get; }
     public IReadOnlyList<AssetPatch> Assets { get; }
     public string PatchSetHash { get; }
 
@@ -65,6 +67,11 @@ public sealed class Manifest
         }
 
         var pbo = Required(root, "pbo", file).GetString()!;
+        var pristineSha = Required(root, "pristineSha256", file).GetString()!.ToLowerInvariant();
+        if (pristineSha.Length != 64 || !pristineSha.All(Uri.IsHexDigit))
+        {
+            throw new PatchException($"{file}: \"pristineSha256\" must be the 64-digit sha256 of the pristine PBO (uksf-patcher hash <pbo>)");
+        }
         var assets = new List<AssetPatch>();
         foreach (var a in Required(root, "assets", file).EnumerateArray())
         {
@@ -84,8 +91,8 @@ public sealed class Manifest
             throw new PatchException($"{file}: no assets");
         }
 
-        var manifest = new Manifest(file, pbo, assets, "");
-        return new Manifest(file, pbo, assets, manifest.ComputePatchSetHash());
+        var manifest = new Manifest(file, pbo, pristineSha, assets, "");
+        return new Manifest(file, pbo, pristineSha, assets, manifest.ComputePatchSetHash());
     }
 
     private string ComputePatchSetHash()

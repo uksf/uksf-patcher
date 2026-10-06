@@ -1,6 +1,7 @@
 {
   "format": 1,
   "pbo": "rksla3-pumahc.pbo",
+  "pristineSha256": "0f0513446188f5e5d8b1836e11bd02a2cc11dce7e950528aedaffe67273306b3",
   "description": "Components 135-149 (geometryFire) and 51 (geometryView) are single proxy triangles that were named as components, so Arma logs 'Strange convex component'. The component selections go; the proxy triangles and their proxy selections stay.",
   "assets": [
     {

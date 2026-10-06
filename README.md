@@ -8,7 +8,7 @@ Patches Arma 3 dependency PBOs in place from declarative, hash-pinned manifests.
 uksf-patcher apply  --addons <dir> --patches <dir> --state <dir> [--dry-run]
 uksf-patcher verify --addons <dir> --patches <dir> --state <dir>
 uksf-patcher inspect <pbo> [filter]           list entries (packing, sizes, names)
-uksf-patcher hash <pbo> <path-in-pbo>         sha256 of an asset, for pinning
+uksf-patcher hash <pbo> [path-in-pbo]         sha256 of the whole PBO, or of one asset, for pinning
 uksf-patcher p3d <pbo> <path-in-pbo> [lod]    ODOL summary: skeleton, LODs, sections, selections
 ```
 
@@ -22,10 +22,14 @@ uksf-patcher p3d <pbo> <path-in-pbo> [lod]    ODOL summary: skeleton, LODs, sect
 | Current PBO | Action |
 |---|---|
 | equals the recorded patched sha256, patch set unchanged | skip (`up to date`); the file and its timestamp stay untouched |
-| equals the recorded patched sha256, patch set changed | re-patch from the pristine backup |
-| anything else (first run, pristine, or an upstream update) | treat the current file as pristine and patch it |
+| equals the recorded or pending patched sha256, patch set changed | re-patch from the pristine backup |
+| anything else (first run, pristine, or an upstream update) | treat the current file as pristine and patch it, if it matches `pristineSha256` |
 
-The patch-set hash covers the manifest bytes, every file a `replace-file` op names, and the tool's output revision. Every asset's pinned sha256 is checked before any op runs. A mismatch stops the run with the PBO, the asset, and the expected and actual hashes, and writes nothing. The tool writes the patched PBO to a temporary file and moves it over the original. The move replaces the directory entry, so a hard-linked original elsewhere is not changed. When a manifest is removed, the next `apply` restores the pristine PBO from the backup.
+The pristine PBO (the current file, or the backup when the current file is the tool's own output) must match the manifest's `pristineSha256` and carry a valid SHA-1 trailer. Every asset's pinned sha256 is checked before any op runs. Any mismatch stops the run with the PBO, the file or asset, and the expected and actual hashes, and writes nothing. An upstream update therefore fails until the manifest is reviewed and re-pinned. `apply --dry-run` and `verify` run the same checks.
+
+The patch-set hash covers the manifest bytes, every file a `replace-file` op names, and the tool's output revision. The tool writes the backup, then a state file that keeps the installed output as committed and the new output as pending, then the patched PBO through a temporary file and a move, then the state with the pending output committed. A run interrupted at any point is finished by the next `apply`: the current PBO is recognised as either the committed or the pending output, and the patch is rebuilt from the backup. The move replaces the directory entry, so a hard-linked original elsewhere is not changed.
+
+When a manifest is removed, the next `apply` restores the pristine PBO from the backup and deletes the state and backup. When the current PBO is neither pristine nor the tool's output, `apply` forgets the state and keeps the backup in `--state`. The backup is deleted only when the PBO on disk is the pristine bytes.
 
 `verify` re-applies every manifest to its pristine backup and checks that the result equals the PBO on disk.
 
@@ -37,6 +41,7 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 {
   "format": 1,
   "pbo": "RHICC.pbo",
+  "pristineSha256": "<sha256 of the whole pristine PBO; uksf-patcher hash <pbo>>",
   "description": "free text, ignored",
   "assets": [
     {
@@ -50,7 +55,7 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 }
 ```
 
-`path` matches case-insensitively, with or without the PBO prefix. Ops run in order on the asset bytes. JSON comments are allowed.
+`pristineSha256` is required. `path` matches case-insensitively, with or without the PBO prefix. Ops run in order on the asset bytes. JSON comments are allowed.
 
 ## Ops
 
@@ -66,7 +71,7 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 
 LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`, `landContact`, `hitpoints`, ..., or a visual resolution such as `0`.
 
-ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output.
+ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output. ODOL ops read the version header first and refuse anything outside 73-74 before the library parses the model. An asset the library cannot read is reported as an error that names the PBO and the asset. `convex-hull-component` also checks that every LOD's sections still partition its faces in order.
 
 - `remove-component` deletes the component's named selection and remaps the LOD's proxy selection indices. It is for proxy triangles that were named as components, which Arma reports as `Strange convex component`.
 - `convex-hull-component` replaces the component's faces with the triangles of its convex hull. It keeps every vertex and the selection name, adds the hull faces to every selection that held all of the old faces, and recomputes the section face ranges. The winding follows the LOD's other components. It refuses flat components, and a selection that holds only part of the component. The hull changes the collision shape, so check the result: a hull of an open L-shaped wall fills the corner.

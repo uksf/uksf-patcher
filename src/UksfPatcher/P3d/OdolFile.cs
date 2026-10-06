@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using BIS.Core.Streams;
 using BIS.P3D.ODOL;
 using UksfPatcher.Patching;
@@ -15,19 +16,23 @@ public static class OdolFile
             throw new PatchException($"{assetPath}: not a binarised (ODOL) P3D");
         }
 
-        var odol = new ODOL();
-        WithLibraryTraceSilenced(() =>
+        var version = bytes.Length < 8 ? -1 : BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4));
+        if (version is < 73 or > 74)
         {
-            using var stream = new MemoryStream(bytes, writable: false);
-            using var reader = new BinaryReaderEx(stream);
-            odol.Read(reader);
-        });
-        if (odol.Version is < 73 or > 74)
-        {
-            throw new PatchException($"{assetPath}: ODOL version {odol.Version} is not supported (73-74)");
+            throw new PatchException($"{assetPath}: ODOL version {version} is not supported (73-74)");
         }
 
-        return odol;
+        return AssetFormat.Guard(assetPath, () =>
+        {
+            var odol = new ODOL();
+            WithLibraryTraceSilenced(() =>
+            {
+                using var stream = new MemoryStream(bytes, writable: false);
+                using var reader = new BinaryReaderEx(stream);
+                odol.Read(reader);
+            });
+            return odol;
+        });
     }
 
     public static byte[] Serialise(ODOL odol)

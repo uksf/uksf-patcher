@@ -8,6 +8,8 @@ namespace UksfPatcher.Ops;
 
 public sealed class ConvexHullComponentOp : OdolOp
 {
+    protected override bool RewritesFaces => true;
+
     protected override void Edit(ODOL odol, JsonElement op, OpContext context)
     {
         var component = OpJson.String(op, "component");
@@ -66,14 +68,10 @@ public sealed class ConvexHullComponentOp : OdolOp
         var faces = new List<BIS.P3D.ODOL.Polygon>();
         var map = new int[lod.Polygons.Faces.Length];
         var hullIndices = new List<int>();
-        var newRanges = new (int First, int End)[ranges.Length];
+        var boundary = new int[lod.Polygons.Faces.Length + 1];
         for (var i = 0; i < lod.Polygons.Faces.Length; i++)
         {
-            for (var s = 0; s < ranges.Length; s++)
-            {
-                if (ranges[s].First == i) newRanges[s].First = faces.Count;
-            }
-
+            boundary[i] = faces.Count;
             if (i == insertAt)
             {
                 hullIndices.AddRange(Enumerable.Range(faces.Count, hullFaces.Length));
@@ -82,11 +80,10 @@ public sealed class ConvexHullComponentOp : OdolOp
 
             map[i] = oldFaces.Contains(i) ? -1 : faces.Count;
             if (!oldFaces.Contains(i)) faces.Add(lod.Polygons.Faces[i]);
-            for (var s = 0; s < ranges.Length; s++)
-            {
-                if (ranges[s].End == i + 1) newRanges[s].End = faces.Count;
-            }
         }
+
+        boundary[^1] = faces.Count;
+        var newRanges = ranges.Select(r => (boundary[r.First], boundary[r.End])).ToArray();
 
         foreach (var s in lod.NamedSelections)
         {

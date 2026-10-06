@@ -3,7 +3,25 @@ using System.Text.Json;
 
 namespace UksfPatcher.Patching;
 
-public sealed record PatchState(string Pbo, string PristineSha256, string PatchSetSha256, string PatchedSha256);
+public sealed record PatchState(string Pbo, string PristineSha256, string? PatchSetSha256, string? PatchedSha256)
+{
+    public string? PendingPatchSetSha256 { get; init; }
+    public string? PendingPatchedSha256 { get; init; }
+
+    public bool Produced(string sha) => sha == PatchedSha256 || sha == PendingPatchedSha256;
+
+    public PatchState Settled(string installedSha)
+    {
+        if (PendingPatchedSha256 != null && installedSha == PendingPatchedSha256)
+        {
+            return this with { PatchSetSha256 = PendingPatchSetSha256, PatchedSha256 = PendingPatchedSha256, PendingPatchSetSha256 = null, PendingPatchedSha256 = null };
+        }
+
+        return PendingPatchedSha256 != null && installedSha == PatchedSha256
+            ? this with { PendingPatchSetSha256 = null, PendingPatchedSha256 = null }
+            : this;
+    }
+}
 
 public sealed class StateStore(string directory)
 {
@@ -35,6 +53,12 @@ public sealed class StateStore(string directory)
             AtomicFile.Write(backup, pristine);
         }
 
+        SaveState(state);
+    }
+
+    public void SaveState(PatchState state)
+    {
+        System.IO.Directory.CreateDirectory(Directory);
         AtomicFile.Write(StatePath(state.Pbo), JsonSerializer.SerializeToUtf8Bytes(state, JsonOptions));
     }
 
@@ -52,9 +76,11 @@ public sealed class StateStore(string directory)
 
     public void Forget(string pbo)
     {
-        File.Delete(StatePath(pbo));
+        ForgetState(pbo);
         File.Delete(BackupPath(pbo));
     }
+
+    public void ForgetState(string pbo) => File.Delete(StatePath(pbo));
 
     public static string Sha256(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
 }

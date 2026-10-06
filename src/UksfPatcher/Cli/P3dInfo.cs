@@ -10,8 +10,9 @@ public static class P3dInfo
     {
         var pbo = RawPbo.Read(pboPath);
         var entry = pbo.Find(asset) ?? throw new PatchException($"{asset} is not in {pboPath}");
-        var bytes = pbo.ReadData(entry);
-        var odol = OdolFile.Parse(bytes, asset);
+        var where = $"{pboPath}:{asset}";
+        var bytes = AssetFormat.Guard(where, () => pbo.ReadData(entry));
+        var odol = OdolFile.Parse(bytes, where);
         var identical = OdolFile.Serialise(odol).AsSpan().SequenceEqual(bytes);
         output.WriteLine($"ODOL v{odol.Version}, {odol.Lods.Length} LODs, {bytes.Length} bytes, sha256 {StateStore.Sha256(bytes)}, re-serialises identically: {identical}");
         var skeleton = odol.ModelInfo.Skeleton;

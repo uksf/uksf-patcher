@@ -70,6 +70,14 @@ public static class OdolFaces
         LibraryAccess.Set(lod.Polygons, nameof(Polygons.Unused1), (uint)offsets[^1]);
     }
 
+    public static void RequirePartitions(ODOL odol, string assetPath)
+    {
+        foreach (var lod in odol.Lods)
+        {
+            SectionFaceRanges(lod, assetPath);
+        }
+    }
+
     public static void SetSelectedFaces(NamedSelection selection, IEnumerable<int> faces) =>
         LibraryAccess.Set(selection, nameof(NamedSelection.SelectedFaces), new TrackedArray<int>(faces.Order()));
 }

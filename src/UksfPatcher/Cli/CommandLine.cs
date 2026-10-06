@@ -10,7 +10,7 @@ public static class CommandLine
         uksf-patcher apply  --addons <dir> --patches <dir> --state <dir> [--dry-run]
         uksf-patcher verify --addons <dir> --patches <dir> --state <dir>
         uksf-patcher inspect <pbo> [filter]
-        uksf-patcher hash <pbo> <path-in-pbo>
+        uksf-patcher hash <pbo> [path-in-pbo]
         uksf-patcher p3d <pbo> <path-in-pbo> [lod]
         """;
 
@@ -29,6 +29,7 @@ public static class CommandLine
                 "apply" => RunPatcher(args, output, verifyOnly: false),
                 "verify" => RunPatcher(args, output, verifyOnly: true),
                 "inspect" when args.Length >= 2 => Inspect(args[1], args.Length > 2 ? args[2] : null, output),
+                "hash" when args.Length == 2 => HashPbo(args[1], output),
                 "hash" when args.Length == 3 => Hash(args[1], args[2], output),
                 "p3d" when args.Length is 3 or 4 => P3dInfo.Run(args[1], args[2], args.Length == 4 ? args[3] : null, output),
                 _ => Fail(error, Usage)
@@ -109,6 +110,12 @@ public static class CommandLine
         var pbo = RawPbo.Read(path);
         var entry = pbo.Find(asset) ?? throw new PatchException($"{asset} is not in {path}");
         output.WriteLine(Convert.ToHexStringLower(SHA256.HashData(pbo.ReadData(entry))));
+        return 0;
+    }
+
+    private static int HashPbo(string path, TextWriter output)
+    {
+        output.WriteLine(StateStore.Sha256(File.ReadAllBytes(path)));
         return 0;
     }
 

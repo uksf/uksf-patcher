@@ -1,6 +1,7 @@
 {
   "format": 1,
   "pbo": "Ballistic_missiles.pbo",
+  "pristineSha256": "5281a2902ad11a0fadf788678c863c346134f7819c72d7d1b4be96fabc745704",
   "description": "Remove zero-area faces from the unbinarised missile models. Arma logs 'very small normal 0,0,0' for them when it binarises the models at load.",
   "assets": [
     {

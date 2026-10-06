@@ -17,6 +17,8 @@ public static class PatchEngine
             throw new PatchException($"{manifest.Pbo}: cannot parse: {e.Message}");
         }
 
+        pbo.RequireValidTrailer(manifest.Pbo);
+
         var replacements = new Dictionary<int, byte[]>();
         foreach (var asset in manifest.Assets)
         {
@@ -26,7 +28,8 @@ public static class PatchEngine
                 throw new PatchException($"{manifest.Pbo}: asset '{asset.Path}' is listed twice");
             }
 
-            var data = pbo.ReadData(entry);
+            var where = $"{manifest.Pbo}:{asset.Path}";
+            var data = AssetFormat.Guard(where, () => pbo.ReadData(entry));
             var actual = StateStore.Sha256(data);
             if (actual != asset.Sha256)
             {
@@ -34,10 +37,11 @@ public static class PatchEngine
                     $"{manifest.Pbo}: asset '{asset.Path}' does not match its pin: expected sha256 {asset.Sha256}, actual {actual}. Upstream changed the asset; review and re-pin the patch.");
             }
 
-            var context = new OpContext(manifest.Directory, $"{manifest.Pbo}:{asset.Path}");
+            var context = new OpContext(manifest.Directory, where);
             foreach (var op in asset.Ops)
             {
-                data = OpRegistry.Apply(data, op, context);
+                var input = data;
+                data = AssetFormat.Guard(where, () => OpRegistry.Apply(input, op, context));
             }
 
             replacements[entry.Index] = data;

@@ -13,9 +13,16 @@ public abstract class OdolOp : IAssetOp
         var odol = OdolFile.Parse(asset, context.AssetPath);
         Edit(odol, op, context);
         var output = OdolFile.Serialise(odol);
-        OdolFile.Parse(output, context.AssetPath);
+        var reparsed = OdolFile.Parse(output, context.AssetPath);
+        if (RewritesFaces)
+        {
+            OdolFaces.RequirePartitions(reparsed, context.AssetPath);
+        }
+
         return output;
     }
+
+    protected virtual bool RewritesFaces => false;
 
     protected abstract void Edit(ODOL odol, JsonElement op, OpContext context);
 
