@@ -20,6 +20,7 @@ public static class OpRegistry
         ["text-replace"] = new TextReplaceOp(),
         ["rtm-strip-bones"] = new RtmStripBonesOp(),
         ["set-bone-parent"] = new SetBoneParentOp(),
+        ["set-skeleton-name"] = new SetSkeletonNameOp(),
         ["remove-component"] = new RemoveComponentOp(),
         ["convex-hull-component"] = new ConvexHullComponentOp(),
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),

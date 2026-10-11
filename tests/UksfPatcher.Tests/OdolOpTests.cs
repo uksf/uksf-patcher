@@ -12,6 +12,7 @@ public class OdolOpTests(ITestOutputHelper log)
         { Models.RhiccPbo, Models.Rhicc },
         { Models.PumaPbo, Models.PumaTroop },
         { Models.RncPbo, Models.RncApartment },
+        { Models.L110Pbo, Models.L110A2 },
     };
 
     [Theory]
@@ -23,6 +24,36 @@ public class OdolOpTests(ITestOutputHelper log)
 
         log.WriteLine($"{asset}: {bytes.Length} bytes, original {StateStore.Sha256(bytes)}, re-serialised {StateStore.Sha256(copy)}");
         Assert.Equal(bytes, copy);
+    }
+
+    [Fact]
+    public void SetSkeletonNameRenamesOnlyTheL110Skeleton()
+    {
+        var bytes = Models.Load(Models.L110Pbo, Models.L110A2);
+        var before = OdolFile.Parse(bytes, "l110").ModelInfo.Skeleton;
+
+        var patched = new SetSkeletonNameOp().Apply(bytes, TestData.Op("""{"op":"set-skeleton-name","from":"M249skel","to":"L110skel"}"""), TestData.Context());
+        var after = OdolFile.Parse(patched, "l110").ModelInfo.Skeleton;
+        var changed = bytes.Zip(patched).Count(p => p.First != p.Second);
+
+        log.WriteLine($"skeleton '{before.SkeletonName}' -> '{after.SkeletonName}', {after.SkeletonBoneNames.Length} bones, {changed} bytes changed");
+        Assert.Equal("M249skel", before.SkeletonName);
+        Assert.Equal("L110skel", after.SkeletonName);
+        Assert.Equal(before.SkeletonBoneNames.Select(b => (b.BoneName, b.ParentBoneName)), after.SkeletonBoneNames.Select(b => (b.BoneName, b.ParentBoneName)));
+        Assert.Equal(bytes.Length, patched.Length);
+        Assert.Equal("M249".Length, changed);
+    }
+
+    [Theory]
+    [InlineData("""{"op":"set-skeleton-name","from":"OtherSkel","to":"L110skel"}""", "skeleton is 'M249skel'")]
+    [InlineData("""{"op":"set-skeleton-name","from":"M249skel","to":""}""", "is empty")]
+    public void SetSkeletonNameRejectsUnsafeEdits(string op, string message)
+    {
+        var bytes = Models.Load(Models.L110Pbo, Models.L110A2);
+
+        var e = Assert.Throws<PatchException>(() => new SetSkeletonNameOp().Apply(bytes, TestData.Op(op), TestData.Context()));
+
+        Assert.Contains(message, e.Message);
     }
 
     [Fact]

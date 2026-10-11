@@ -65,6 +65,7 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 | `text-replace` | `find`, `replace`, `count` (default 1; exact number of matches required) | text (refuses rapified configs) |
 | `rtm-strip-bones` | `bones`: names to remove from the bone table and every frame | `RTM_0101` |
 | `set-bone-parent` | `bone`, `from` (current parent, checked), `to` (`""` or an existing bone; cycles rejected) | ODOL v73/74 |
+| `set-skeleton-name` | `from` (current name, checked), `to` (non-empty) | ODOL v73/74 |
 | `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
 | `convex-hull-component` | `lods`, `component` | ODOL v73/74 |
 | `remove-degenerate-faces` | `lods` (default all), `minArea` (default 1e-8 m²), `expectedRemoved` | MLOD |

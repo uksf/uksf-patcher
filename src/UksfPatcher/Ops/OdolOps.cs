@@ -77,6 +77,27 @@ public sealed class SetBoneParentOp : OdolOp
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }
 
+public sealed class SetSkeletonNameOp : OdolOp
+{
+    protected override void Edit(ODOL odol, JsonElement op, OpContext context)
+    {
+        var from = OpJson.String(op, "from");
+        var to = OpJson.String(op, "to");
+        if (to.Length == 0)
+        {
+            throw new PatchException($"{context.AssetPath}: set-skeleton-name \"to\" is empty");
+        }
+
+        var skeleton = odol.ModelInfo.Skeleton;
+        if (!string.Equals(skeleton.SkeletonName, from, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new PatchException($"{context.AssetPath}: skeleton is '{skeleton.SkeletonName}', the patch expects '{from}'");
+        }
+
+        LibraryAccess.Set(skeleton, nameof(Skeleton.SkeletonName), to);
+    }
+}
+
 public sealed class RemoveComponentOp : OdolOp
 {
     protected override void Edit(ODOL odol, JsonElement op, OpContext context)

@@ -11,6 +11,8 @@ public static class Models
     public const string PumaTroop = @"rksla3\rksla3-pumahc\rksla3_puma_hc1_troop.p3d";
     public const string RncPbo = "rnc_apartments.pbo";
     public const string RncApartment = @"variant1\15x15l\rnc_apt_v1_15x15l_c1_f3.p3d";
+    public const string L110Pbo = "uk3cb_baf_weapons_L110.pbo";
+    public const string L110A2 = @"UK3CB_BAF_Weapons\addons\UK3CB_BAF_Weapons_L110\UK3CB_L110a2.p3d";
     public const string MissilesPbo = "Ballistic_missiles.pbo";
 
     private static readonly ConcurrentDictionary<(string, string), byte[]> Cache = new();
