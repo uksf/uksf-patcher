@@ -144,9 +144,9 @@ public sealed class StripAnimationsOp : IAssetOp
 
             for (var lod = 0; lod < lods; lod++)
             {
-                for (var bones = r.Int(); bones > 0; bones--)
+                for (var bones = r.Count(4); bones > 0; bones--)
                 {
-                    r.Skip(4 * r.Int());
+                    r.Skip(4 * r.Count(4));
                 }
             }
 
@@ -166,7 +166,7 @@ public sealed class StripAnimationsOp : IAssetOp
         }
         catch (ArgumentOutOfRangeException)
         {
-            throw new PatchException(Fail("it runs past the end of the model"));
+            throw new PatchException(Fail("an array length is negative or runs past the end of the model"));
         }
     }
 
@@ -200,9 +200,20 @@ public sealed class StripAnimationsOp : IAssetOp
             return v;
         }
 
+        public int Count(int elementSize)
+        {
+            var count = Int();
+            if (count < 0 || (long)count * elementSize > b.Length - At)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            return count;
+        }
+
         public void Skip(int n)
         {
-            if (n < 0 || At + n > b.Length)
+            if (n < 0 || (long)At + n > b.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(n));
             }

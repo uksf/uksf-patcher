@@ -86,6 +86,21 @@ public sealed class KitModelTests(ITestOutputHelper log) : IDisposable
         Assert.Contains("has no animations", e.Message);
     }
 
+    [Theory]
+    [InlineData(653, 2, -1, 16)]
+    [InlineData(657, 1, 0x40000000, 4)]
+    public void StripAnimationsRefusesAnInvalidBoneTableCount(int offset, int original, int count, int payload)
+    {
+        var model = Models.Load(Models.EwdjPbo, Models.EwdjGenerator);
+        Assert.Equal(original, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(model.AsSpan(offset)));
+        var bytes = model[..(offset + 4)].Concat(model[(offset + 4 + payload)..]).ToArray();
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), count);
+
+        var e = Assert.Throws<PatchException>(() => new StripAnimationsOp().Apply(bytes, TestData.Op(StripSwitch), TestData.Context()));
+
+        Assert.Contains("the animation block at offset 505 is malformed", e.Message);
+    }
+
     [Fact]
     public void StripAnimationsMatchesSourcesWithoutCase()
     {
