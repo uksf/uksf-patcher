@@ -238,11 +238,11 @@ public sealed class RawPbo
 
         using var output = new MemoryStream();
         output.Write(header.AsSpan(0, terminator));
+        Span<byte> fields = stackalloc byte[FieldsLength];
         foreach (var addition in additions)
         {
             output.Write(Encoding.Latin1.GetBytes(addition.Name));
             output.WriteByte(0);
-            Span<byte> fields = stackalloc byte[FieldsLength];
             fields.Clear();
             BinaryPrimitives.WriteUInt32LittleEndian(fields[4..], (uint)addition.Data.Length);
             BinaryPrimitives.WriteUInt32LittleEndian(fields[12..], addition.Timestamp);
