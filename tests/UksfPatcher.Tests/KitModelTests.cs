@@ -65,10 +65,45 @@ public sealed class KitModelTests(ITestOutputHelper log) : IDisposable
         var output = new StripAnimationsOp().Apply(bytes, TestData.Op(StripSwitch), TestData.Context());
         var again = Assert.Throws<PatchException>(() => new StripAnimationsOp().Apply(output, TestData.Op(StripSwitch), TestData.Context()));
 
+        uint[] addresses = [647660, 195421, 18700, 8224, 4613, 3897, 3453, 2737, 696, 5342, 1399969, 647660, 195421, 18700, 5342, 4613, 3897, 3453, 2737, 8224];
         Assert.Equal(bytes.Length - 427, output.Length);
+        Assert.Equal(bytes.AsSpan(0, 505).ToArray(), output.AsSpan(0, 505).ToArray());
         Assert.Equal(0, output[505]);
+        Assert.Equal(addresses, Enumerable.Range(0, 20).Select(i => System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(output.AsSpan(506 + 4 * i))));
         Assert.Equal(bytes.AsSpan(933 + 80).ToArray(), output.AsSpan(506 + 80).ToArray());
-        Assert.Contains("found 0 animation blocks", again.Message);
+        Assert.Contains("has no animations", again.Message);
+    }
+
+    [Fact]
+    public void StripAnimationsIgnoresAnAnimationBlockOutsideTheAnimationSection()
+    {
+        var bytes = Models.Load(Models.EwdjPbo, Models.EwdjGenerator);
+        var stripped = new StripAnimationsOp().Apply(bytes, TestData.Op(StripSwitch), TestData.Context());
+        var planted = stripped.Concat(bytes.AsSpan(505, 933 + 80 - 505).ToArray()).ToArray();
+
+        var e = Assert.Throws<PatchException>(() => new StripAnimationsOp().Apply(planted, TestData.Op(StripSwitch), TestData.Context()));
+
+        Assert.Contains("has no animations", e.Message);
+    }
+
+    [Fact]
+    public void StripAnimationsMatchesSourcesWithoutCase()
+    {
+        var bytes = Models.Load(Models.EwdjPbo, Models.EwdjGenerator);
+
+        var output = new StripAnimationsOp().Apply(bytes, TestData.Op("""{"op":"strip-animations","sources":["Switch_SOURCE"]}"""), TestData.Context());
+
+        Assert.Equal(bytes.Length - 427, output.Length);
+    }
+
+    [Fact]
+    public void StripAnimationsRefusesADifferentSourceSet()
+    {
+        var bytes = Models.Load(Models.EwdjPbo, Models.EwdjGenerator);
+
+        var e = Assert.Throws<PatchException>(() => new StripAnimationsOp().Apply(bytes, TestData.Op("""{"op":"strip-animations","sources":["switch_source","door"]}"""), TestData.Context()));
+
+        Assert.Contains("sources are [switch_source], not [door, switch_source]", e.Message);
     }
 
     [Fact]
@@ -94,9 +129,36 @@ public sealed class KitModelTests(ITestOutputHelper log) : IDisposable
         Assert.Contains("already exists", e.Message);
     }
 
-    private Manifest Manifest(string target)
+    [Theory]
+    [InlineData("")]
+    [InlineData("/")]
+    [InlineData("data\\kit\u0000.p3d")]
+    [InlineData("data\\kit\u0141.p3d")]
+    [InlineData(@"data\\kit.p3d")]
+    public void CopyOfRefusesATargetThatIsNotAValidEntryName(string target)
     {
         var pristine = File.ReadAllBytes(TestData.Specimen(Models.EwdjPbo));
+
+        var e = Assert.Throws<PatchException>(() => PatchEngine.Patch(pristine, Manifest(target)));
+
+        Assert.Contains("copy target is not a valid PBO entry name", e.Message);
+    }
+
+    [Fact]
+    public void AnAmbiguousCopyTargetNamesThePboAndTheAsset()
+    {
+        var original = RawPbo.Parse(File.ReadAllBytes(TestData.Specimen(Models.EwdjPbo)));
+        var name = original.EntryName(KitPath);
+        var twice = original.Rebuild(new Dictionary<int, byte[]>(), [new PboAddition(name, 1, [1]), new PboAddition(name, 1, [2])]);
+
+        var e = Assert.Throws<PatchException>(() => PatchEngine.Patch(twice, Manifest(KitPath, twice)));
+
+        Assert.Contains($"{Models.EwdjPbo}:{KitPath}: cannot parse: 2 entries are named", e.Message);
+    }
+
+    private Manifest Manifest(string target, byte[]? pristine = null)
+    {
+        pristine ??= File.ReadAllBytes(TestData.Specimen(Models.EwdjPbo));
         var sha = RunnerSandbox.EntrySha(pristine, Models.EwdjGenerator);
         var file = Path.Join(_dir, Models.EwdjPbo + ".json");
         File.WriteAllText(file, $$"""

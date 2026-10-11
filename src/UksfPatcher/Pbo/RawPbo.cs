@@ -231,7 +231,7 @@ public sealed class RawPbo
     private static byte[] WithAddedEntries(byte[] header, IReadOnlyList<PboAddition> additions)
     {
         var terminator = header.Length - (1 + FieldsLength);
-        if (header.AsSpan(terminator).ContainsAnyExcept((byte)0))
+        if (header[terminator] != 0)
         {
             throw new PboFormatException("the header does not end with an empty terminator entry");
         }

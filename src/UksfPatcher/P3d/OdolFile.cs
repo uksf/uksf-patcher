@@ -55,7 +55,7 @@ public static class OdolFile
         }
     }
 
-    private static void WithLibraryTraceSilenced(Action action)
+    internal static void WithLibraryTraceSilenced(Action action)
     {
         lock (ConsoleLock)
         {
