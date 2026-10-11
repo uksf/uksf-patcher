@@ -14,6 +14,8 @@ public static class Models
     public const string L110Pbo = "uk3cb_baf_weapons_L110.pbo";
     public const string L110A2 = @"UK3CB_BAF_Weapons\addons\UK3CB_BAF_Weapons_L110\UK3CB_L110a2.p3d";
     public const string MissilesPbo = "Ballistic_missiles.pbo";
+    public const string EwdjPbo = "ew_modular.pbo";
+    public const string EwdjGenerator = @"z\ewdj\addons\ew_modular\data\ewdj_generator.p3d";
 
     private static readonly ConcurrentDictionary<(string, string), byte[]> Cache = new();
 

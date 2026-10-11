@@ -21,6 +21,7 @@ public static class OpRegistry
         ["rtm-strip-bones"] = new RtmStripBonesOp(),
         ["set-bone-parent"] = new SetBoneParentOp(),
         ["set-skeleton-name"] = new SetSkeletonNameOp(),
+        ["strip-animations"] = new StripAnimationsOp(),
         ["remove-component"] = new RemoveComponentOp(),
         ["convex-hull-component"] = new ConvexHullComponentOp(),
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),

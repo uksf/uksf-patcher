@@ -5,7 +5,7 @@ namespace UksfPatcher.Patching;
 
 public sealed class PatchException(string message) : Exception(message);
 
-public sealed record AssetPatch(string Path, string Sha256, IReadOnlyList<JsonElement> Ops);
+public sealed record AssetPatch(string Path, string Sha256, IReadOnlyList<JsonElement> Ops, string? CopyOf = null);
 
 public sealed class Manifest
 {
@@ -83,7 +83,15 @@ public sealed class Manifest
                 throw new PatchException($"{file}: {path} has no ops");
             }
 
-            assets.Add(new AssetPatch(path, sha, ops));
+            string? copyOf = null;
+            if (a.TryGetProperty("copyOf", out var c))
+            {
+                copyOf = c.ValueKind == JsonValueKind.String && c.GetString()!.Length > 0
+                    ? c.GetString()
+                    : throw new PatchException($"{file}: {path}: \"copyOf\" must be a non-empty string");
+            }
+
+            assets.Add(new AssetPatch(path, sha, ops, copyOf));
         }
 
         if (assets.Count == 0)

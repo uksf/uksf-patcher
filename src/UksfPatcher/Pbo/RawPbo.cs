@@ -178,9 +178,16 @@ public sealed class RawPbo
         return data;
     }
 
-    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements)
+    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements) => Rebuild(replacements, []);
+
+    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements, IReadOnlyList<PboAddition> additions)
     {
         var header = Bytes.AsSpan(0, HeaderLength).ToArray();
+        if (additions.Count > 0)
+        {
+            header = WithAddedEntries(header, additions);
+        }
+
         foreach (var (index, data) in replacements)
         {
             var e = Entries[index];
@@ -203,9 +210,47 @@ public sealed class RawPbo
             }
         }
 
+        foreach (var addition in additions)
+        {
+            output.Write(addition.Data);
+        }
+
         var hash = SHA1.HashData(output.GetBuffer().AsSpan(0, (int)output.Length));
         output.WriteByte(0);
         output.Write(hash);
+        return output.ToArray();
+    }
+
+    public string EntryName(string path)
+    {
+        var name = path.Replace('/', '\\').TrimStart('\\');
+        var prefix = Normalise(Prefix);
+        return prefix.Length > 0 && Normalise(name).StartsWith(prefix + "\\") ? name[(prefix.Length + 1)..] : name;
+    }
+
+    private static byte[] WithAddedEntries(byte[] header, IReadOnlyList<PboAddition> additions)
+    {
+        var terminator = header.Length - (1 + FieldsLength);
+        if (header.AsSpan(terminator).ContainsAnyExcept((byte)0))
+        {
+            throw new PboFormatException("the header does not end with an empty terminator entry");
+        }
+
+        using var output = new MemoryStream();
+        output.Write(header.AsSpan(0, terminator));
+        foreach (var addition in additions)
+        {
+            output.Write(Encoding.Latin1.GetBytes(addition.Name));
+            output.WriteByte(0);
+            Span<byte> fields = stackalloc byte[FieldsLength];
+            fields.Clear();
+            BinaryPrimitives.WriteUInt32LittleEndian(fields[4..], (uint)addition.Data.Length);
+            BinaryPrimitives.WriteUInt32LittleEndian(fields[12..], addition.Timestamp);
+            BinaryPrimitives.WriteUInt32LittleEndian(fields[16..], (uint)addition.Data.Length);
+            output.Write(fields);
+        }
+
+        output.Write(header.AsSpan(terminator));
         return output.ToArray();
     }
 
@@ -226,5 +271,7 @@ public sealed class RawPbo
         return value;
     }
 }
+
+public sealed record PboAddition(string Name, uint Timestamp, byte[] Data);
 
 public sealed class PboFormatException(string message) : Exception(message);

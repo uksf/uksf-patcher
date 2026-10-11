@@ -57,6 +57,8 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 
 `pristineSha256` is required. `path` matches case-insensitively, with or without the PBO prefix. Ops run in order on the asset bytes. JSON comments are allowed.
 
+To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that source asset, the ops run on a copy of it, and the result is added to the PBO at `path`. The source stays unchanged. The run fails if `path` already exists. Point config at the new path from a UKSF addon.
+
 ## Ops
 
 | Op | Fields | Asset |
@@ -66,6 +68,7 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 | `rtm-strip-bones` | `bones`: names to remove from the bone table and every frame | `RTM_0101` |
 | `set-bone-parent` | `bone`, `from` (current parent, checked), `to` (`""` or an existing bone; cycles rejected) | ODOL v73/74 |
 | `set-skeleton-name` | `from` (current name, checked), `to` (non-empty) | ODOL v73/74 |
+| `strip-animations` | `sources`: the exact set of animation sources the model uses (checked) | ODOL v73-75 |
 | `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
 | `convex-hull-component` | `lods`, `component` | ODOL v73/74 |
 | `remove-degenerate-faces` | `lods` (default all), `minArea` (default 1e-8 m²), `expectedRemoved` | MLOD |
@@ -74,6 +77,7 @@ LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`,
 
 ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output. ODOL ops read the version header first and refuse anything outside 73-74 before the library parses the model. An asset the library cannot read is reported as an error that names the PBO and the asset. `convex-hull-component` also checks that every LOD's sections still partition its faces in order.
 
+- `strip-animations` replaces the model's animation block with an empty one and moves the LOD addresses that follow it. It edits the bytes in place and does not parse the rest of the model, so it also works on unencrypted v75 models that the library cannot read. It is for an inventory item that reuses a vehicle model whose animations need sources the item does not have.
 - `remove-component` deletes the component's named selection and remaps the LOD's proxy selection indices. It is for proxy triangles that were named as components, which Arma reports as `Strange convex component`.
 - `convex-hull-component` replaces the component's faces with the triangles of its convex hull. It keeps every vertex and the selection name, adds the hull faces to every selection that held all of the old faces, and recomputes the section face ranges. The winding follows the LOD's other components. It refuses flat components, and a selection that holds only part of the component. The hull changes the collision shape, so check the result: a hull of an open L-shaped wall fills the corner.
 - `remove-degenerate-faces` drops faces whose area is below `minArea` from every face-indexed tagg (selections, `#Selected#`, `#Lock#`, `#UVSet#`). Arma logs these faces as `very small normal 0,0,0` when it binarises the model at load.
