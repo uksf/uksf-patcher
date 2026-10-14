@@ -52,6 +52,11 @@ public sealed class BindSelectionOp : OdolOp
             throw new PatchException($"{context.AssetPath}: LOD {LodNames.Name(lod.Resolution)} has no bone '{bone}'");
         }
 
+        if (sub > byte.MaxValue)
+        {
+            throw new PatchException($"{context.AssetPath}: bone '{bone}' has sub-skeleton index {sub}, which a vertex weight cannot hold");
+        }
+
         int[] sections;
         if (selection.StartsWith('#'))
         {
@@ -103,12 +108,35 @@ public sealed class BindSelectionOp : OdolOp
         OdolGraph.SetBoneRefs(lod, refs);
         foreach (var sec in sections.Select(s => lod.Sections[s]))
         {
-            if (sub < sec.MinBoneIndex || sub >= sec.MinBoneIndex + sec.BonesCount)
-            {
-                LibraryAccess.Set(sec, nameof(Section.MinBoneIndex), Math.Max(0, sub - sec.BonesCount + 1));
-            }
+            FitBoneWindow(lod, sec, refs, context);
         }
     }
+
+    private static void FitBoneWindow(LOD lod, Section sec, List<object> refs, OpContext context)
+    {
+        var used = OdolGraph.FacesInSection(lod, sec).SelectMany(f => lod.Polygons.Faces[f].VertexIndices).Distinct()
+            .SelectMany(v => LibraryAccess.Get<byte[]>(refs[v], "Data").Where((_, k) => k % 2 == 0).Take(OdolGraph.BoneCount(refs[v])))
+            .Select(b => (int)b).ToList();
+        int lo = used.Min(), hi = used.Max();
+        if (lo >= sec.MinBoneIndex && hi < sec.MinBoneIndex + sec.BonesCount)
+        {
+            return;
+        }
+
+        var count = Math.Max(sec.BonesCount, hi - lo + 1);
+        if (count > SectionBones.MaxPerSection)
+        {
+            throw new PatchException($"{context.AssetPath}: a section would need bones {lo}..{hi}, more than {SectionBones.MaxPerSection}");
+        }
+
+        LibraryAccess.Set(sec, nameof(Section.MinBoneIndex), Math.Min(lo, Math.Max(0, hi - count + 1)));
+        LibraryAccess.Set(sec, nameof(Section.BonesCount), count);
+    }
+}
+
+public static class SectionBones
+{
+    public const int MaxPerSection = 56;
 }
 
 public sealed class RemapProxiesOp : OdolOp
@@ -122,6 +150,11 @@ public sealed class RemapProxiesOp : OdolOp
 
         var rules = list.EnumerateArray().Select(r => (From: ModelPath(OpJson.String(r, "model")), FromId: OpJson.Int(r, "id", -1),
             To: ModelPath(OpJson.String(r, "toModel")), ToId: OpJson.Int(r, "toId", -1))).ToList();
+        var duplicate = rules.GroupBy(r => (r.From, r.FromId)).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate != null)
+        {
+            throw new PatchException($"{context.AssetPath}: remap-proxies has {duplicate.Count()} rules for {duplicate.Key.From}|{duplicate.Key.FromId}");
+        }
         var used = new HashSet<(string, int)>();
         foreach (var lod in odol.Lods)
         {

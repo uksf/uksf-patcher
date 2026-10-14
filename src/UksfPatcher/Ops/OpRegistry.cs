@@ -68,14 +68,15 @@ public static class OpJson
         op.TryGetProperty(name, out _) ? String(op, name) : null;
 
     public static float Float(JsonElement op, string name) =>
-        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number
+        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && float.IsFinite(v.GetSingle())
             ? v.GetSingle()
-            : throw new PatchException($"op is missing number \"{name}\": {op}");
+            : throw new PatchException($"op is missing a finite number \"{name}\": {op}");
 
     public static float[] Floats(JsonElement op, string name, int count) =>
-        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array && v.GetArrayLength() == count && v.EnumerateArray().All(x => x.ValueKind == JsonValueKind.Number)
+        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array && v.GetArrayLength() == count
+            && v.EnumerateArray().All(x => x.ValueKind == JsonValueKind.Number && float.IsFinite(x.GetSingle()))
             ? v.EnumerateArray().Select(x => x.GetSingle()).ToArray()
-            : throw new PatchException($"op needs \"{name}\" as an array of {count} numbers: {op}");
+            : throw new PatchException($"op needs \"{name}\" as an array of {count} finite numbers: {op}");
 
     public static JsonElement SourceJson(JsonElement op, OpContext context)
     {

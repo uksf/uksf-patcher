@@ -11,6 +11,8 @@ namespace UksfPatcher.Ops;
 public sealed class AddPhysxOp : OdolOp
 {
     private const float GeometryRes = 1e13f, PhysxRes = 4e13f;
+    private const byte NoLod = 255;
+    public const string PhysxIndexField = "Geometry";
     private const BindingFlags InstanceAny = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     private static readonly string[] SpecialLodIndices =
@@ -22,7 +24,7 @@ public sealed class AddPhysxOp : OdolOp
     protected override void Edit(ODOL odol, JsonElement op, OpContext context)
     {
         var mass = OpJson.Float(op, "mass");
-        if (!float.IsFinite(mass) || mass <= 0)
+        if (!float.IsFinite(mass) || mass <= 0 || !float.IsFinite(1 / mass))
         {
             throw new PatchException($"{context.AssetPath}: add-physx mass must be a positive number");
         }
@@ -39,24 +41,24 @@ public sealed class AddPhysxOp : OdolOp
         }
 
         var at = g + 1;
-        LibraryAccess.Set(odol, nameof(ODOL.Lods), Insert(odol.Lods, at, CloneLod(odol, odol.Lods[g], PhysxRes)));
-
         var mi = odol.ModelInfo;
-        foreach (var name in SpecialLodIndices)
+        var moved = SpecialLodIndices.Append("MinShadow").Select(name => LibraryAccess.Get<byte>(mi, name)).Where(v => v != NoLod && v >= at);
+        if (at >= NoLod || moved.Any(v => v + 1 >= NoLod))
+        {
+            throw new PatchException($"{context.AssetPath}: add-physx would push a special LOD index to {NoLod}, which means no LOD");
+        }
+
+        LibraryAccess.Set(odol, nameof(ODOL.Lods), Insert(odol.Lods, at, CloneLod(odol, odol.Lods[g], PhysxRes)));
+        foreach (var name in SpecialLodIndices.Append("MinShadow"))
         {
             var v = LibraryAccess.Get<byte>(mi, name);
-            if (v != 255 && v >= at)
+            if (v != NoLod && v >= at)
             {
                 LibraryAccess.Set(mi, name, (byte)(v + 1));
             }
         }
 
-        LibraryAccess.Set(mi, "Geometry", (byte)at);
-        var minShadow = LibraryAccess.Get<byte>(mi, "MinShadow");
-        if (minShadow != 255 && minShadow >= at)
-        {
-            LibraryAccess.Set(mi, "MinShadow", (byte)(minShadow + 1));
-        }
+        LibraryAccess.Set(mi, PhysxIndexField, (byte)at);
 
         foreach (var name in new[] { "PreferredShadowVolumeLod", "PreferredShadowBufferLod", "PreferredShadowBufferLodVis" })
         {
@@ -85,7 +87,13 @@ public sealed class AddPhysxOp : OdolOp
         var inv = LibraryAccess.Get<Vector3P[]?>(mi, "InvInertia");
         if (inv != null && old > 0)
         {
-            LibraryAccess.Set(mi, "InvInertia", inv.Select(v => new Vector3P(v.X * old / mass, v.Y * old / mass, v.Z * old / mass)).ToArray());
+            var scaled = inv.Select(v => new Vector3P(v.X * old / mass, v.Y * old / mass, v.Z * old / mass)).ToArray();
+            if (scaled.Any(v => !float.IsFinite(v.X) || !float.IsFinite(v.Y) || !float.IsFinite(v.Z)))
+            {
+                throw new PatchException($"{context.AssetPath}: add-physx mass {mass} gives a non-finite inverse inertia");
+            }
+
+            LibraryAccess.Set(mi, "InvInertia", scaled);
         }
     }
 

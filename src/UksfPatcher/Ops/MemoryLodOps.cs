@@ -16,13 +16,21 @@ public static class MemoryLod
 
     public static int AppendVertex(LOD mem, Vector3 p, int clip, Vector3PCompressed normal, object boneRef, List<object> boneRefs)
     {
+        if (mem.UvSets.Any(s => !s.DefaultFill))
+        {
+            throw new PatchException("memory LOD has per-vertex UV data, which memory edits do not support");
+        }
+
         var v = mem.Vertices.Count;
         LibraryAccess.Set(mem, nameof(LOD.Vertices), new TrackedArray<Vector3P>(mem.Vertices.Append(new Vector3P(p.X, p.Y, p.Z))));
         LibraryAccess.Set(mem, nameof(LOD.Clip), new TrackedArray<int>(mem.Clip.Append(clip)));
         LibraryAccess.Set(mem, nameof(LOD.NormalsCompressed), new TrackedArray<Vector3PCompressed>(mem.NormalsCompressed.Append(normal)));
         boneRefs.Add(boneRef);
         LibraryAccess.Set(mem, nameof(LOD.VertexCount), (uint)(v + 1));
-        LibraryAccess.Set(mem.UvSets[0], nameof(UVSet.NVertices), (uint)(v + 1));
+        foreach (var set in mem.UvSets)
+        {
+            LibraryAccess.Set(set, nameof(UVSet.NVertices), (uint)(v + 1));
+        }
         return v;
     }
 
