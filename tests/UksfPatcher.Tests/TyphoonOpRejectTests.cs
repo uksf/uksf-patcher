@@ -80,4 +80,17 @@ public sealed class TyphoonOpRejectTests : IDisposable
 
         Assert.Contains("no faces on sheet B", message);
     }
+
+    [Fact]
+    public void UvSplitRefusesUvsThatOverflowTheBounds()
+    {
+        var model = TyphoonModel.Lod0();
+        var section = model.NamedSelections.Single(n => n.Name == "zbytek").Sections.First(s => TyphoonModel.Isolated(model, s));
+        var verts = TyphoonModel.SectionVertices(model, section);
+        var uv = string.Join(',', verts.Select((_, k) => k % 2 == 0 ? "[0,0]" : "[3e38,3e38]"));
+
+        var message = Reject(UvSplit, $$"""{"islands":[{"sheet":"B","uv":[{{uv}}],"verts":[{{string.Join(',', verts)}}]}]}""");
+
+        Assert.Contains("overflow", message);
+    }
 }

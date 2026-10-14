@@ -30,7 +30,7 @@ public sealed class UvSplitOp : OdolOp
             throw new PatchException($"{context.AssetPath}: LOD {LodNames.Name(lod.Resolution)} already has selection '{newSelection}'");
         }
 
-        if (lod.Textures.Length >= short.MaxValue)
+        if (lod.Textures.Length > short.MaxValue)
         {
             throw new PatchException($"{context.AssetPath}: LOD {LodNames.Name(lod.Resolution)} has no room for another texture index");
         }
@@ -92,7 +92,7 @@ public sealed class UvSplitOp : OdolOp
 
             var ratio = fs.Sum(f => UvData.Area(uv, faces[f].VertexIndices)) / before;
             var result = aot / ratio;
-            return ratio > 0 && float.IsFinite(result)
+            return ratio > 0 && float.IsFinite(ratio) && float.IsFinite(result)
                 ? result
                 : throw new PatchException($"{context.AssetPath}: uv-split collapses a section's UV area to {ratio}");
         }

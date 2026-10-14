@@ -19,6 +19,11 @@ public static class UvData
 
         float minU = uv.Min(t => t.X), minV = uv.Min(t => t.Y);
         float maxU = minU + (uv.Max(t => t.X) - minU) * 65536f / 65534f, maxV = minV + (uv.Max(t => t.Y) - minV) * 65536f / 65534f;
+        if (!float.IsFinite(minU) || !float.IsFinite(minV) || !float.IsFinite(maxU) || !float.IsFinite(maxV))
+        {
+            throw new PatchException($"{context.AssetPath}: UV bounds overflow ({minU},{minV})..({maxU},{maxV})");
+        }
+
         static short Q(float x, float min, float max) => (short)Math.Clamp(Math.Round((x - min) / (max - min) * 65536.0 - 32767.0), -32767, 32767);
         var data = new byte[uv.Length * 4];
         for (var i = 0; i < uv.Length; i++)

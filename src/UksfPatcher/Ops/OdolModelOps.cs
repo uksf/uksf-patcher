@@ -117,6 +117,11 @@ public sealed class BindSelectionOp : OdolOp
         var used = OdolGraph.FacesInSection(lod, sec).SelectMany(f => lod.Polygons.Faces[f].VertexIndices).Distinct()
             .SelectMany(v => LibraryAccess.Get<byte[]>(refs[v], "Data").Where((_, k) => k % 2 == 0).Take(OdolGraph.BoneCount(refs[v])))
             .Select(b => (int)b).ToList();
+        if (used.Count == 0)
+        {
+            return;
+        }
+
         int lo = used.Min(), hi = used.Max();
         if (lo >= sec.MinBoneIndex && hi < sec.MinBoneIndex + sec.BonesCount)
         {
