@@ -10,6 +10,7 @@ public static class LodNames
         ["geometrySimple"] = 2e13f,
         ["geometryPhys"] = 4e13f,
         ["geometryPhysOld"] = 3e13f,
+        ["viewPilot"] = 1100f,
         ["memory"] = 1e15f,
         ["landContact"] = 2e15f,
         ["roadway"] = 3e15f,

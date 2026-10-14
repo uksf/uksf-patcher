@@ -25,6 +25,16 @@ public static class OpRegistry
         ["remove-component"] = new RemoveComponentOp(),
         ["convex-hull-component"] = new ConvexHullComponentOp(),
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),
+        ["set-animation-source"] = new SetAnimationSourceOp(),
+        ["bind-selection"] = new BindSelectionOp(),
+        ["remap-proxies"] = new RemapProxiesOp(),
+        ["add-memory-proxies"] = new AddMemoryProxiesOp(),
+        ["add-memory-point"] = new AddMemoryPointOp(),
+        ["cut-seams"] = new CutSeamsOp(),
+        ["uv-split"] = new UvSplitOp(),
+        ["move-sections"] = new MoveSectionsOp(),
+        ["retexture"] = new RetextureOp(),
+        ["add-physx"] = new AddPhysxOp(),
     };
 
     public static IEnumerable<string> Names => Ops.Keys;
@@ -53,6 +63,31 @@ public static class OpJson
 
     public static int Int(JsonElement op, string name, int fallback) =>
         op.TryGetProperty(name, out var v) ? v.GetInt32() : fallback;
+
+    public static string? OptionalString(JsonElement op, string name) =>
+        op.TryGetProperty(name, out _) ? String(op, name) : null;
+
+    public static float Float(JsonElement op, string name) =>
+        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number
+            ? v.GetSingle()
+            : throw new PatchException($"op is missing number \"{name}\": {op}");
+
+    public static float[] Floats(JsonElement op, string name, int count) =>
+        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array && v.GetArrayLength() == count && v.EnumerateArray().All(x => x.ValueKind == JsonValueKind.Number)
+            ? v.EnumerateArray().Select(x => x.GetSingle()).ToArray()
+            : throw new PatchException($"op needs \"{name}\" as an array of {count} numbers: {op}");
+
+    public static JsonElement SourceJson(JsonElement op, OpContext context)
+    {
+        var source = String(op, "source");
+        var path = Path.Join(context.ManifestDirectory, source);
+        if (!File.Exists(path))
+        {
+            throw new PatchException($"{context.AssetPath}: source '{source}' does not exist");
+        }
+
+        return JsonDocument.Parse(File.ReadAllBytes(path)).RootElement.Clone();
+    }
 
     public static IReadOnlyList<string> Strings(JsonElement op, string name) =>
         op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array

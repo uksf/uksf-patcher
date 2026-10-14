@@ -17,6 +17,9 @@ public static class Models
     public const string EwdjPbo = "ew_modular.pbo";
     public const string EwdjGenerator = @"z\ewdj\addons\ew_modular\data\ewdj_generator.p3d";
 
+    public const string EawsPbo = "EAWS_EF2000.pbo";
+    public const string EawsFuselage = "EAWS_EF2000.p3d";
+
     private static readonly ConcurrentDictionary<(string, string), byte[]> Cache = new();
 
     public static byte[] Load(string pbo, string asset) =>
