@@ -27,6 +27,7 @@ public static class OpRegistry
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),
         ["set-animation-source"] = new SetAnimationSourceOp(),
         ["bind-selection"] = new BindSelectionOp(),
+        ["translate-selection"] = new TranslateSelectionOp(),
         ["remap-proxies"] = new RemapProxiesOp(),
         ["add-memory-proxies"] = new AddMemoryProxiesOp(),
         ["add-memory-point"] = new AddMemoryPointOp(),
