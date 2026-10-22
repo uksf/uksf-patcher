@@ -112,7 +112,7 @@ public sealed class BindSelectionOp : OdolOp
         }
     }
 
-    private static void FitBoneWindow(LOD lod, Section sec, List<object> refs, OpContext context)
+    internal static void FitBoneWindow(LOD lod, Section sec, List<object> refs, OpContext context)
     {
         var used = OdolGraph.FacesInSection(lod, sec).SelectMany(f => lod.Polygons.Faces[f].VertexIndices).Distinct()
             .SelectMany(v => LibraryAccess.Get<byte[]>(refs[v], "Data").Where((_, k) => k % 2 == 0).Take(OdolGraph.BoneCount(refs[v])))

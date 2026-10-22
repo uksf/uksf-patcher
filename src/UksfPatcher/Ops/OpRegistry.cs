@@ -28,6 +28,8 @@ public static class OpRegistry
         ["set-animation-source"] = new SetAnimationSourceOp(),
         ["bind-selection"] = new BindSelectionOp(),
         ["translate-selection"] = new TranslateSelectionOp(),
+        ["rebind-vertices"] = new RebindVerticesOp(),
+        ["add-translation"] = new AddTranslationOp(),
         ["remap-proxies"] = new RemapProxiesOp(),
         ["add-memory-proxies"] = new AddMemoryProxiesOp(),
         ["add-memory-point"] = new AddMemoryPointOp(),
