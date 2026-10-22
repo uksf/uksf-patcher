@@ -35,6 +35,7 @@ public static class OpRegistry
         ["uv-split"] = new UvSplitOp(),
         ["move-sections"] = new MoveSectionsOp(),
         ["retexture"] = new RetextureOp(),
+        ["set-section-texture"] = new SetSectionTextureOp(),
         ["add-physx"] = new AddPhysxOp(),
     };
 
