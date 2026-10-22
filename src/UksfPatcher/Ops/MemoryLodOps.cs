@@ -147,3 +147,31 @@ public sealed class AddMemoryPointOp : OdolOp
         mem.NamedSelections = mem.NamedSelections.Append(MemoryLod.NewSelection(name, [], [v])).ToArray();
     }
 }
+
+public sealed class SetMemoryPointOp : OdolOp
+{
+    protected override void Edit(ODOL odol, JsonElement op, OpContext context)
+    {
+        var name = OpJson.String(op, "name");
+        var p = OpJson.Floats(op, "position", 3);
+        var mem = FindLod(odol, "memory", context);
+        var point = mem.NamedSelections.SingleOrDefault(n => n.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            ?? throw new PatchException($"{context.AssetPath}: memory LOD has no selection '{name}'");
+        var vertices = point.SelectedVertices.ToArray();
+        if (vertices.Length != 1)
+        {
+            throw new PatchException($"{context.AssetPath}: memory selection '{name}' has {vertices.Length} vertices, not one point");
+        }
+
+        var v = vertices[0];
+        var sharers = mem.NamedSelections.Where(n => n != point && n.SelectedVertices.Contains(v)).Select(n => n.Name).ToArray();
+        if (sharers.Length > 0)
+        {
+            throw new PatchException($"{context.AssetPath}: memory point '{name}' is shared with {string.Join(", ", sharers)}");
+        }
+
+        var positions = mem.Vertices.ToArray();
+        positions[v] = new Vector3P(p[0], p[1], p[2]);
+        LibraryAccess.Set(mem, nameof(LOD.Vertices), new TrackedArray<Vector3P>(positions));
+    }
+}

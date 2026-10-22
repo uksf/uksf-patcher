@@ -91,6 +91,22 @@ public sealed class TyphoonOpTests(ITestOutputHelper log) : IDisposable
     }
 
     [Fact]
+    public void SetMemoryPointMovesOnlyThatPoint()
+    {
+        var before = Lod(Parse(Fuselage()), 1e15f);
+        var after = Lod(Parse(Apply(Fuselage(), """{"op":"set-memory-point","name":"hud lh","position":[0.15,1.22,-4.85]}""")), 1e15f);
+
+        var lh = after.Vertices[after.NamedSelections.Single(n => n.Name == "hud lh").SelectedVertices.Single()];
+        var ph = after.NamedSelections.Single(n => n.Name == "hud ph").SelectedVertices.Single();
+        log.WriteLine($"hud lh at {lh.X} {lh.Y} {lh.Z}");
+        Assert.Equal((0.15f, 1.22f, -4.85f), (lh.X, lh.Y, lh.Z));
+        Assert.Equal((before.Vertices[ph].X, before.Vertices[ph].Y), (after.Vertices[ph].X, after.Vertices[ph].Y));
+        Assert.Equal(before.Vertices.Count, after.Vertices.Count);
+        Assert.Throws<PatchException>(() => Apply(Fuselage(), """{"op":"set-memory-point","name":"nope","position":[0,0,0]}"""));
+        Assert.Throws<PatchException>(() => Apply(Fuselage(), """{"op":"set-memory-point","name":"pullup_axis","position":[0,0,0]}"""));
+    }
+
+    [Fact]
     public void RetextureAndMoveSectionsRetargetOnlyTheNamedTexture()
     {
         var retextured = Apply(Fuselage(), """{"op":"retexture","from":"eaws_ef2000\\data\\sides.paa","to":"u\\x\\sides_co.paa"}""");

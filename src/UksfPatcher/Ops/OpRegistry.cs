@@ -31,6 +31,7 @@ public static class OpRegistry
         ["remap-proxies"] = new RemapProxiesOp(),
         ["add-memory-proxies"] = new AddMemoryProxiesOp(),
         ["add-memory-point"] = new AddMemoryPointOp(),
+        ["set-memory-point"] = new SetMemoryPointOp(),
         ["cut-seams"] = new CutSeamsOp(),
         ["uv-split"] = new UvSplitOp(),
         ["move-sections"] = new MoveSectionsOp(),
