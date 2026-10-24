@@ -35,11 +35,25 @@ public sealed class AddMeshOp : OdolOp
                 throw new PatchException($"{context.AssetPath}: LOD {name} has no barrel ring at the attach point");
             }
 
-            var fits = lod.UvSets.Select(s => s.DefaultFill ? null : CylinderUv.Fit(lod, s.GetUV(), bandFaces, frame, context.AssetPath)).ToArray();
+            var fits = Fits(odol, op, lod, bandFaces, frame, context);
             var weldTargets = lod.Polygons.Faces.SelectMany(f => f.VertexIndices).Distinct().Where(bound).ToList();
             Append(lod, mesh, fits, frame, OpJson.Float(op, "attachAlong"), ring, weldTargets, bandFaces, context);
             OdolBounds.Grow(odol, lod);
         }
+    }
+
+    private CylinderUv?[] Fits(ODOL odol, JsonElement op, LOD lod, List<int> bandFaces, AxialFrame frame, OpContext context)
+    {
+        if (!op.GetProperty("uvFrom").TryGetProperty("fit", out var fit))
+        {
+            return lod.UvSets.Select(s => s.DefaultFill ? null : CylinderUv.Fit(lod, s.GetUV(), bandFaces, frame, context.AssetPath)).ToArray();
+        }
+
+        var from = FindLod(odol, OpJson.String(fit, "lod"), context);
+        var fromFaces = BandFaces(from, frame, BoneWeights.BoundOnlyTo(odol, from, [OpJson.String(op, "bone")], context), fit);
+        return lod.UvSets.Select((s, i) => s.DefaultFill || i >= from.UvSets.Length || from.UvSets[i].DefaultFill
+            ? null
+            : CylinderUv.Fit(from, from.UvSets[i].GetUV(), fromFaces, frame, context.AssetPath)).ToArray();
     }
 
     private static List<int> BandFaces(LOD lod, AxialFrame frame, Func<int, bool> bound, JsonElement band)

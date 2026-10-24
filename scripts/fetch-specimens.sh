@@ -13,7 +13,7 @@ for pbo in Ballistic_missiles.pbo RHICC.pbo rksla3-pumahc.pbo rnc_apartments.pbo
     cp "$addons/$pbo" "$root/testdata/specimens/$pbo"
 done
 cp "$rtm" "$root/testdata/AH64_pilot.rtm"
-cp "$modpack/patches/L118_muzzle.p3d" "$root/testdata/L118_muzzle.p3d"
+cp "$modpack/patches/"L118_muzzle*.p3d "$root/testdata/"
 cp "$workshop/1337653467/addons/EAWS_EF2000.pbo" "$root/testdata/specimens/EAWS_EF2000.pbo"
 cp "$arma/Jets/Addons/air_f_jets.pbo" "$root/testdata/specimens/air_f_jets.pbo"
 rm -rf "$root/testdata/typhoon" && mkdir -p "$root/testdata/typhoon"
