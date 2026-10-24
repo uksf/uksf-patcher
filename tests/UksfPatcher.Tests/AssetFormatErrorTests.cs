@@ -35,11 +35,32 @@ public sealed class AssetFormatErrorTests : IDisposable
     [Fact]
     public void UnsupportedOdolVersionIsRefusedBeforeTheLibraryParsesIt()
     {
-        byte[] header = [(byte)'O', (byte)'D', (byte)'O', (byte)'L', 75, 0, 0, 0];
+        byte[] header = [(byte)'O', (byte)'D', (byte)'O', (byte)'L', 76, 0, 0, 0];
 
         var e = Assert.Throws<PatchException>(() => OdolFile.Parse(header, "model.p3d"));
 
-        Assert.Contains("ODOL version 75 is not supported", e.Message);
+        Assert.Contains("ODOL version 76 is not supported", e.Message);
+    }
+
+    [Fact]
+    public void EncryptedV75OdolIsRefused()
+    {
+        byte[] header = [(byte)'O', (byte)'D', (byte)'O', (byte)'L', 75, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0];
+
+        var e = Assert.Throws<PatchException>(() => OdolFile.Parse(header, "model.p3d"));
+
+        Assert.Contains("encrypted", e.Message);
+    }
+
+    [Fact]
+    public void UnencryptedV75OdolRoundTripsByteIdentically()
+    {
+        var bytes = Models.Load(Models.M119Pbo, Models.M119);
+
+        var odol = OdolFile.Parse(bytes, "m119");
+
+        Assert.Equal(75, odol.Version);
+        Assert.Equal(bytes, OdolFile.Serialise(odol));
     }
 
     [Fact]
@@ -55,7 +76,6 @@ public sealed class AssetFormatErrorTests : IDisposable
     [Fact]
     public void PlainLibraryExceptionBecomesAControlledError()
     {
-        // BIS ODOL parsing throws a plain Exception for an animation type it does not know.
         var e = Assert.Throws<PatchException>(() => AssetFormat.Guard<int>("x.pbo:model.p3d", () => throw new Exception("Unknown AnimType encountered: 9")));
 
         Assert.Contains("x.pbo:model.p3d", e.Message);

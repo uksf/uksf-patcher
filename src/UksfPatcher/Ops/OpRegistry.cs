@@ -40,6 +40,9 @@ public static class OpRegistry
         ["retexture"] = new RetextureOp(),
         ["set-section-texture"] = new SetSectionTextureOp(),
         ["add-physx"] = new AddPhysxOp(),
+        ["stretch-along-axis"] = new StretchAlongAxisOp(),
+        ["remove-faces"] = new RemoveFacesOp(),
+        ["add-mesh"] = new AddMeshOp(),
     };
 
     public static IEnumerable<string> Names => Ops.Keys;

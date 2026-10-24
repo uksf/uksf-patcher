@@ -74,6 +74,9 @@ To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that s
 | `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
 | `convex-hull-component` | `lods`, `component` | ODOL v73/74 |
 | `remove-degenerate-faces` | `lods` (default all), `minArea` (default 1e-8 m²), `expectedRemoved` | MLOD |
+| `stretch-along-axis` | `lods`, `axis` (origin and direction), `cut`, `length`, `vertices` (exact count), `bones` (optional; vertices bound only to these, and their proxies), `maxRadius` (optional) | ODOL v73-75 |
+| `remove-faces` | `lod`, `axis`, `bones`, `allBeyond`, `anyBeyond` (distances along the axis), `faces` (exact count) | ODOL v73-75 |
+| `add-mesh` | `lods`, `source` (MLOD next to the manifest), `sourceAxis`, `axis`, `attachAlong`, `scale`, `weldLoop` (source z and radius of the loop welded to the barrel ring), `loopRadii` (optional `[z, sourceRadius, targetRadius]`), `bone`, `uvFrom` (the cylinder band whose UV unwrap the new faces continue) | ODOL v73-75 |
 
 LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`, `landContact`, `hitpoints`, ..., or a visual resolution such as `0`.
 

@@ -9,10 +9,11 @@ modpack="${5:-D:/Arma/modpack}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
 mkdir -p "$root/testdata/specimens"
-for pbo in Ballistic_missiles.pbo RHICC.pbo rksla3-pumahc.pbo rnc_apartments.pbo sps_ai_axmc_ace.pbo uk3cb_baf_weapons_L110.pbo ew_modular.pbo; do
+for pbo in Ballistic_missiles.pbo RHICC.pbo rksla3-pumahc.pbo rnc_apartments.pbo sps_ai_axmc_ace.pbo uk3cb_baf_weapons_L110.pbo ew_modular.pbo tbd_m119_m119.pbo; do
     cp "$addons/$pbo" "$root/testdata/specimens/$pbo"
 done
 cp "$rtm" "$root/testdata/AH64_pilot.rtm"
+cp "$modpack/patches/L118_muzzle.p3d" "$root/testdata/L118_muzzle.p3d"
 cp "$workshop/1337653467/addons/EAWS_EF2000.pbo" "$root/testdata/specimens/EAWS_EF2000.pbo"
 cp "$arma/Jets/Addons/air_f_jets.pbo" "$root/testdata/specimens/air_f_jets.pbo"
 rm -rf "$root/testdata/typhoon" && mkdir -p "$root/testdata/typhoon"
