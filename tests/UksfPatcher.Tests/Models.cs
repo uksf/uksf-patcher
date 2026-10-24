@@ -17,6 +17,12 @@ public static class Models
     public const string EwdjPbo = "ew_modular.pbo";
     public const string EwdjGenerator = @"z\ewdj\addons\ew_modular\data\ewdj_generator.p3d";
 
+    public const string M119Pbo = "tbd_m119_m119.pbo";
+    public const string M119 = @"tbd_m119\TBD_M119.p3d";
+
+    public const string MortarsPbo = "tbd_mortars_105mm.pbo";
+    public const string RoundHe = @"tbd_mortars_105mm_round_he\tbd_mortars_105mm_round_he.p3d";
+
     public const string EawsPbo = "EAWS_EF2000.pbo";
     public const string EawsFuselage = "EAWS_EF2000.p3d";
 

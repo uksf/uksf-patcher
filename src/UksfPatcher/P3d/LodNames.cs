@@ -30,12 +30,12 @@ public static class LodNames
             return value;
         }
 
-        if (float.TryParse(name, System.Globalization.CultureInfo.InvariantCulture, out var visual) && visual < 1000)
+        if (float.TryParse(name, System.Globalization.CultureInfo.InvariantCulture, out var visual) && visual >= 0 && visual < Special["geometry"])
         {
             return visual;
         }
 
-        throw new PatchException($"unknown LOD name '{name}' (use {string.Join(", ", Special.Keys)} or a visual resolution)");
+        throw new PatchException($"unknown LOD name '{name}' (use {string.Join(", ", Special.Keys)} or a numeric resolution such as 1, 1201 or 10000)");
     }
 
     public static string Name(float resolution)

@@ -8,6 +8,8 @@ namespace UksfPatcher.P3d;
 public static class OdolFile
 {
     private static readonly Lock ConsoleLock = new();
+    private const int V75EncryptionFieldsOffset = 8;
+    private const int V75EncryptionFieldsLength = 8;
 
     public static ODOL Parse(byte[] bytes, string assetPath)
     {
@@ -17,9 +19,14 @@ public static class OdolFile
         }
 
         var version = bytes.Length < 8 ? -1 : BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4));
-        if (version is < 73 or > 74)
+        if (version is < 73 or > 75)
         {
-            throw new PatchException($"{assetPath}: ODOL version {version} is not supported (73-74)");
+            throw new PatchException($"{assetPath}: ODOL version {version} is not supported (73-75)");
+        }
+
+        if (version == 75 && (bytes.Length < 16 || BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(8)) != 0))
+        {
+            throw new PatchException($"{assetPath}: ODOL v75 model is encrypted");
         }
 
         return AssetFormat.Guard(assetPath, () =>
@@ -37,13 +44,16 @@ public static class OdolFile
 
     public static byte[] Serialise(ODOL odol)
     {
+        var encryptionFields = odol.Version >= 75 ? V75EncryptionFieldsLength : 0;
         using var stream = new MemoryStream();
+        stream.Write(new byte[encryptionFields]);
         using (var writer = new BinaryWriterEx(stream, leaveOpen: true))
         {
             odol.Write(writer);
         }
 
-        return stream.ToArray();
+        var bytes = stream.ToArray().AsSpan(encryptionFields);
+        return [.. bytes[..V75EncryptionFieldsOffset], .. new byte[encryptionFields], .. bytes[V75EncryptionFieldsOffset..]];
     }
 
     public static void RequireRoundTrip(byte[] original, string assetPath)
