@@ -11,9 +11,10 @@ public sealed class L118BarrelTests
     private const string Axis = "\"axis\":[0,0.885,1.636,0,0.0487,-0.9988]";
     private const string RemoveBrake = "{\"op\":\"remove-faces\",\"lod\":\"1\"," + Axis + ",\"bones\":[\"barrel\"],\"allBeyond\":3.86,\"anyBeyond\":3.86,\"faces\":464}";
     private const string Stretch = "{\"op\":\"stretch-along-axis\",\"lods\":[\"1\"]," + Axis + ",\"bones\":[\"barrel\",\"m119_zasleh\"],\"cut\":3.5,\"length\":0.70,\"vertices\":500}";
+    private const string StretchBore = "{\"op\":\"stretch-along-axis\",\"lods\":[\"1\"]," + Axis + ",\"bones\":[\"barrel\"],\"cut\":4.5,\"maxRadius\":0.0545,\"length\":-0.0257,\"vertices\":98}";
     private const string StretchMemory = "{\"op\":\"stretch-along-axis\",\"lods\":[\"memory\"]," + Axis + ",\"cut\":3.5,\"maxRadius\":0.3,\"length\":0.74,\"vertices\":4}";
     private const string AddBrake = "{\"op\":\"add-mesh\",\"lods\":[\"1\"],\"source\":\"L118_muzzle.p3d\",\"sourceAxis\":[0,0,3.75021,0,0,1]," + Axis +
-        ",\"attachAlong\":4.5742,\"scale\":1.06,\"weldLoop\":[3.75021,0.0558],\"loopRadii\":[[3.89092,0.04773,0.0530]],\"bone\":\"barrel\"," +
+        ",\"attachAlong\":4.5742,\"scale\":1.06,\"weldLoops\":[[3.75021,0.0558],[3.89092,0.04773]],\"loopRadii\":[[3.89092,0.04773,0.0530]],\"bone\":\"barrel\"," +
         "\"uvFrom\":{\"alongMin\":3.1111,\"alongMax\":4.5742,\"radius\":0.0591,\"tolerance\":0.0015}}";
 
     private static readonly AxialFrame Frame = new(new Vector3(0, 0.885f, 1.636f), Vector3.Normalize(new Vector3(0, 0.0487f, -0.9988f)));
@@ -28,7 +29,7 @@ public sealed class L118BarrelTests
     [Fact]
     public void ReplacesTheBrakeOnALongerBarrel()
     {
-        var lod = Lod(OdolFile.Parse(Apply(M119(), RemoveBrake, Stretch, AddBrake), "m119"), "1");
+        var lod = Lod(OdolFile.Parse(Apply(M119(), RemoveBrake, Stretch, StretchBore, AddBrake), "m119"), "1");
         var pos = lod.Vertices.Select(v => v.Vector3).ToArray();
         bool OnSeam(int v) => Math.Abs(Frame.Along(pos[v]) - 4.5742f) < 0.002f && Math.Abs(Frame.Radius(pos[v]) - 0.0591f) < 0.002f;
         string Key(int v) => $"{pos[v].X:F4},{pos[v].Y:F4},{pos[v].Z:F4}";
@@ -67,7 +68,7 @@ public sealed class L118BarrelTests
     [Fact]
     public void RefusesABrakeThatDoesNotMeetTheBarrel()
     {
-        var e = Assert.Throws<PatchException>(() => Apply(M119(), RemoveBrake, Stretch, AddBrake.Replace("\"attachAlong\":4.5742", "\"attachAlong\":4.60")));
+        var e = Assert.Throws<PatchException>(() => Apply(M119(), RemoveBrake, Stretch, StretchBore, AddBrake.Replace("\"attachAlong\":4.5742", "\"attachAlong\":4.60")));
 
         Assert.Contains("within 6 mm", e.Message);
     }

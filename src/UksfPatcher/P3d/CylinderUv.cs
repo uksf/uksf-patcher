@@ -12,13 +12,24 @@ public sealed class CylinderUv
     private readonly float seam;
     private readonly Vector2[] a;
 
-    private CylinderUv(AxialFrame frame, float seam, Vector2[] coefficients)
+    private CylinderUv(AxialFrame frame, float seam, Vector2[] coefficients, float radius = 0)
     {
         this.frame = frame;
+        Radius = radius;
         up = Vector3.Normalize(Vector3.UnitY - Vector3.Dot(Vector3.UnitY, frame.Direction) * frame.Direction);
         right = Vector3.Cross(up, frame.Direction);
         this.seam = seam;
         a = coefficients;
+    }
+
+    public float Radius { get; }
+
+    public float Turn => 2 * MathF.PI;
+
+    public Vector3 AroundAxis(Vector3 p)
+    {
+        var theta = Angle(p);
+        return Math.Max(frame.Radius(p), 1e-3f) * (MathF.Cos(theta) * up - MathF.Sin(theta) * right);
     }
 
     public float Angle(Vector3 p)
@@ -46,14 +57,11 @@ public sealed class CylinderUv
 
     public Vector2 Map(float unwrapped, float along) => a[0] + a[1] * unwrapped + a[2] * along;
 
-    public (Vector3 S, Vector3 T) Tangents(Vector3 p, Vector3 normal, float alongSign)
+    public (Vector3 S, Vector3 T) Tangents(Vector3 dPdUnwrapped, Vector3 dPdAlong, Vector3 normal)
     {
-        var theta = Angle(p);
-        var dPdTheta = Math.Max(frame.Radius(p), 1e-3f) * (MathF.Cos(theta) * up - MathF.Sin(theta) * right);
         var det = a[1].X * a[2].Y - a[2].X * a[1].Y;
-        var axis = frame.Direction * alongSign;
-        var dPdu = dPdTheta * (a[2].Y / det) + axis * (-a[1].Y / det);
-        var dPdv = dPdTheta * (-a[2].X / det) + axis * (a[1].X / det);
+        var dPdu = dPdUnwrapped * (a[2].Y / det) + dPdAlong * (-a[1].Y / det);
+        var dPdv = dPdUnwrapped * (-a[2].X / det) + dPdAlong * (a[1].X / det);
         return (Orthogonal(dPdu, normal), Orthogonal(dPdv, normal));
     }
 
@@ -93,7 +101,8 @@ public sealed class CylinderUv
             throw new PatchException($"{assetPath}: the barrel UVs are not a cylindrical unwrap (worst residual {residual:F4})");
         }
 
-        return new CylinderUv(frame, seam, coefficients);
+        var radius = faces.SelectMany(f => lod.Polygons.Faces[f].VertexIndices).Average(v => frame.Radius(lod.Vertices[v].Vector3));
+        return new CylinderUv(frame, seam, coefficients, radius);
     }
 
     private static float FindSeam(LOD lod, Vector2[] uv, IReadOnlyCollection<int> faces, CylinderUv probe)

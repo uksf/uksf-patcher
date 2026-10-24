@@ -43,6 +43,7 @@ public static class OpRegistry
         ["stretch-along-axis"] = new StretchAlongAxisOp(),
         ["remove-faces"] = new RemoveFacesOp(),
         ["add-mesh"] = new AddMeshOp(),
+        ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
     public static IEnumerable<string> Names => Ops.Keys;
