@@ -96,15 +96,17 @@ public sealed class RemoveFacesOp : OdolOp
     {
         var lod = FindLod(odol, OpJson.String(op, "lod"), context);
         var frame = AxialFrame.From(op, context);
-        var bound = BoneWeights.BoundOnlyTo(odol, lod, OpJson.Strings(op, "bones"), context);
+        Func<int, bool> bound = op.TryGetProperty("bones", out _) ? BoneWeights.BoundOnlyTo(odol, lod, OpJson.Strings(op, "bones"), context) : _ => true;
         var allBeyond = OpJson.Float(op, "allBeyond");
         var anyBeyond = OpJson.Float(op, "anyBeyond");
         var expected = OpJson.Int(op, "faces", -1);
 
         var faces = lod.Polygons.Faces;
         var along = lod.Vertices.Select(frame.Along).ToArray();
+        var parts = op.TryGetProperty("wholeParts", out var w) && w.GetBoolean() ? Parts(lod, bound) : null;
         bool Doomed(Polygon f) =>
-            f.VertexIndices.All(bound) && f.VertexIndices.All(v => along[v] > allBeyond) && f.VertexIndices.Any(v => along[v] > anyBeyond);
+            f.VertexIndices.All(bound) && (parts?[f.VertexIndices[0]] ?? f.VertexIndices).All(v => along[v] > allBeyond)
+            && (parts?[f.VertexIndices[0]] ?? f.VertexIndices).Any(v => along[v] > anyBeyond);
 
         var ranges = OdolFaces.SectionFaceRanges(lod, context.AssetPath);
         var keep = new List<Polygon>();
@@ -137,5 +139,39 @@ public sealed class RemoveFacesOp : OdolOp
         }
 
         OdolFaces.Replace(lod, keep.ToArray(), newRanges);
+    }
+
+    private static int[][] Parts(LOD lod, Func<int, bool> bound)
+    {
+        var parent = Enumerable.Range(0, lod.Vertices.Count).ToArray();
+        int Find(int x)
+        {
+            while (parent[x] != x)
+            {
+                x = parent[x] = parent[parent[x]];
+            }
+
+            return x;
+        }
+
+        var byPosition = new Dictionary<Vector3, int>();
+        for (var v = 0; v < parent.Length; v++)
+        {
+            if (bound(v) && !byPosition.TryAdd(lod.Vertices[v].Vector3, v))
+            {
+                parent[Find(v)] = Find(byPosition[lod.Vertices[v].Vector3]);
+            }
+        }
+
+        foreach (var f in lod.Polygons.Faces.Where(f => f.VertexIndices.All(bound)))
+        {
+            foreach (var v in f.VertexIndices.Skip(1))
+            {
+                parent[Find(v)] = Find(f.VertexIndices[0]);
+            }
+        }
+
+        var members = Enumerable.Range(0, parent.Length).GroupBy(Find).ToDictionary(g => g.Key, g => g.ToArray());
+        return Enumerable.Range(0, parent.Length).Select(v => members[Find(v)]).ToArray();
     }
 }

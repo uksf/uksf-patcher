@@ -68,8 +68,8 @@ public sealed class RebuildShadowVolumeOp : OdolOp
         }
 
         var bones = OdolGraph.BoneRefs(source);
-        var neighbours = Array.CreateInstance(NeighbourType, origin.Count);
-        for (var f = 0; f < corners.Length; f++)
+        var neighbours = Array.CreateInstance(NeighbourType, bones.Count == 0 ? 0 : origin.Count);
+        for (var f = 0; f < corners.Length && bones.Count > 0; f++)
         {
             for (var k = 0; k < 3; k++)
             {
@@ -80,7 +80,11 @@ public sealed class RebuildShadowVolumeOp : OdolOp
         LibraryAccess.Set(volume, nameof(LOD.Vertices), new TrackedArray<Vector3P>(origin.Select(v => source.Vertices[v])));
         LibraryAccess.Set(volume, nameof(LOD.NormalsCompressed), new TrackedArray<Vector3PCompressed>(origin.Select(v => source.NormalsCompressed[v])));
         LibraryAccess.Set(volume, nameof(LOD.Clip), new TrackedArray<int>(origin.Select(v => source.Clip[v])));
-        OdolGraph.SetBoneRefs(volume, origin.Select(v => OdolGraph.Clone(bones[v])).ToList());
+        if (bones.Count > 0)
+        {
+            OdolGraph.SetBoneRefs(volume, origin.Select(v => OdolGraph.Clone(bones[v])).ToList());
+        }
+
         LibraryAccess.Set(volume, "NeighborBoneRef", Activator.CreateInstance(typeof(TrackedArray<>).MakeGenericType(NeighbourType), neighbours));
         LibraryAccess.Set(volume.UvSets[0], nameof(UVSet.NVertices), (uint)origin.Count);
         LibraryAccess.Set(volume, nameof(LOD.VertexCount), (uint)origin.Count);
@@ -100,6 +104,9 @@ public sealed class RebuildShadowVolumeOp : OdolOp
         return n;
     }
 
+    private static bool Unskinned(LOD source, LOD volume) =>
+        source.SubSkeletonsToSkeleton.Length == 0 && OdolGraph.BoneRefs(source).Count == 0 && OdolGraph.BoneRefs(volume).Count == 0;
+
     private static void RequireSupported(LOD source, LOD volume, OpContext context)
     {
         string? Problem() =>
@@ -109,7 +116,8 @@ public sealed class RebuildShadowVolumeOp : OdolOp
             : volume.VertexToPoint.Count != 0 || source.VertexToPoint.Count != 0 ? "a LOD has a vertex-to-point map"
             : LibraryAccess.Get<Array?>(volume, "Frames")?.Length > 0 || LibraryAccess.Get<Array?>(source, "Frames")?.Length > 0 ? "a LOD has keyframes"
             : !volume.SubSkeletonsToSkeleton.SequenceEqual(source.SubSkeletonsToSkeleton) ? "the LODs map bones differently"
-            : OdolGraph.BoneRefs(source).Count != source.Vertices.Count || source.Clip.Count != source.Vertices.Count ? "the source LOD lacks per-vertex bones or clip flags"
+            : !Unskinned(source, volume) && OdolGraph.BoneRefs(source).Count != source.Vertices.Count ? "the source LOD lacks per-vertex bones"
+            : source.Clip.Count != source.Vertices.Count ? "the source LOD lacks per-vertex clip flags"
             : volume.Sections.Length != source.Sections.Length ? "the LODs have different section counts"
             : volume.NamedSelections.Concat(source.NamedSelections).Any(s => s.SelectedFaces.Count > 0 || s.SelectedVertices.Count > 0) ? "a named selection holds faces or vertices"
             : null;

@@ -9,7 +9,7 @@ modpack="${5:-D:/Arma/modpack}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
 mkdir -p "$root/testdata/specimens"
-for pbo in Ballistic_missiles.pbo RHICC.pbo rksla3-pumahc.pbo rnc_apartments.pbo sps_ai_axmc_ace.pbo uk3cb_baf_weapons_L110.pbo ew_modular.pbo tbd_m119_m119.pbo; do
+for pbo in Ballistic_missiles.pbo RHICC.pbo rksla3-pumahc.pbo rnc_apartments.pbo sps_ai_axmc_ace.pbo uk3cb_baf_weapons_L110.pbo ew_modular.pbo tbd_m119_m119.pbo tbd_mortars_105mm.pbo; do
     cp "$addons/$pbo" "$root/testdata/specimens/$pbo"
 done
 cp "$rtm" "$root/testdata/AH64_pilot.rtm"

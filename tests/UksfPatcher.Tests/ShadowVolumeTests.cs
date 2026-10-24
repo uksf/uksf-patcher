@@ -41,6 +41,23 @@ public sealed class ShadowVolumeTests
     }
 
     [Fact]
+    public void RebuildsTheShadowVolumeOfAModelWithoutBones()
+    {
+        var round = Models.Load(Models.MortarsPbo, Models.RoundHe);
+        static List<string> Faces(byte[] model)
+        {
+            var lod = OdolFile.Parse(model, "round").Lods.Single(l => l.Resolution == 10002);
+            Assert.Empty(LibraryAccess.Get<IEnumerable>(lod, "NeighborBoneRef").Cast<object>());
+            return lod.Polygons.Faces.Select(f => string.Join(" | ", f.VertexIndices.Select(v => $"{lod.Vertices[v].Vector3} {lod.Clip[v]}"))).Order().ToList();
+        }
+
+        var rebuilt = Apply(round, Rebuild.Replace("10000", "10002").Replace("11000", "11002"));
+
+        Assert.Equal(2656, Faces(rebuilt).Count);
+        Assert.Equal(Faces(round), Faces(rebuilt));
+    }
+
+    [Fact]
     public void RefusesATexturedSourceLod()
     {
         var m119 = Models.Load(Models.M119Pbo, Models.M119);
