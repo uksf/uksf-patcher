@@ -81,7 +81,7 @@ To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that s
 
 LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`, `landContact`, `hitpoints`, ..., or a visual resolution such as `0`.
 
-ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output. ODOL ops read the version header first and refuse anything outside 73-74 before the library parses the model. An asset the library cannot read is reported as an error that names the PBO and the asset. `convex-hull-component` also checks that every LOD's sections still partition its faces in order.
+ODOL and MLOD ops refuse a model unless the UKSFTA-BIS library re-serialises it byte-identically, and re-parse their own output. ODOL ops read the version header first and refuse anything outside 73-75, and a v75 model with nonzero encryption markers, before the library parses the model. An asset the library cannot read is reported as an error that names the PBO and the asset. `convex-hull-component` also checks that every LOD's sections still partition its faces in order.
 
 - `strip-animations` replaces the model's animation block with an empty one and moves the LOD addresses that follow it. It edits the bytes in place and does not parse the rest of the model, so it also works on unencrypted v75 models that the library cannot read. It is for an inventory item that reuses a vehicle model whose animations need sources the item does not have.
 - `remove-component` deletes the component's named selection and remaps the LOD's proxy selection indices. It is for proxy triangles that were named as components, which Arma reports as `Strange convex component`.
