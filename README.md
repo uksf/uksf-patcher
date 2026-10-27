@@ -13,7 +13,7 @@ uksf-patcher p3d <pbo> <path-in-pbo> [lod]    ODOL summary: skeleton, LODs, sect
 ```
 
 - `--addons`: the `@mod/addons` folder that holds the PBOs.
-- `--patches`: a folder of manifests, one `*.json` per target PBO.
+- `--patches`: a folder of manifests, one `*.json` per target PBO. The modpack keeps one folder per repo mod, named for it: `patches/@uksf_dependencies`, `patches/@CUP_Vehicles`. The build runs the tool once for each mod folder, with state in `PatcherState/@<mod>`, and signs every patched PBO with the dependencies key.
 - `--state`: where the tool keeps per-PBO state and a pristine backup of every PBO it patched. It must be outside the mod folder, or the backups would ship to clients. The build keeps it between builds.
 - Exit code 0 on success. Exit code 1 on any error (with a message on stderr), or when `verify` finds a PBO that is not patched.
 
@@ -77,6 +77,7 @@ To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that s
 | `stretch-along-axis` | `lods`, `axis` (origin and direction), `cut`, `length`, `vertices` (exact count), `bones` (optional; vertices bound only to these, and their proxies), `maxRadius` (optional) | ODOL v73-75 |
 | `remove-faces` | `lod`, `axis`, optional `bones` (omit to match every vertex), `allBeyond`, `anyBeyond` (distances along the axis), optional `wholeParts` (test each connected part as a whole, so one part can be cut from another that overlaps it along the axis), `faces` (exact count) | ODOL v73-75 |
 | `add-mesh` | `lods`, `source` (MLOD next to the manifest), `sourceAxis`, `axis`, `attachAlong`, `scale`, `weldLoops` (source z and radius of each open loop; each point snaps to the nearest barrel vertex within 6 mm), `loopRadii` (optional `[z, sourceRadius, targetRadius]`), `bone`, `uvFrom` (the cylinder band whose UV unwrap the new faces continue; an optional `fit` band with its own `lod` takes the unwrap from a cleaner LOD, for a decimated low LOD whose barrel is no longer a cylinder) | ODOL v73-75 |
+| `restore-lod-proxies` | `from` (the LOD that has every proxy, such as `1`), `lods`, `filter` (proxy model substring). Adds each matching proxy that a target LOD lacks, with the source's model, sequence, transform and bone, onto the LOD's existing `proxy:` selection. Its section is that of a surviving proxy of the same model, or the first section with the source section's texture. Refuses a target LOD that lacks none | ODOL v73-75 |
 | `rebuild-shadow-volume` | `lod` (the shadow volume, such as `10000`), `from` (the closed triangulated shadow LOD it is built from, such as `11000`). Rebuilds the volume as each source triangle plus a degenerate quad on each shared edge, with per-vertex neighbour data. Run it after every edit to the source LOD | ODOL v73-75 |
 
 LOD names: `geometry`, `geometryFire`, `geometryView`, `geometryPhys`, `memory`, `landContact`, `hitpoints`, ..., or a visual resolution such as `0`.

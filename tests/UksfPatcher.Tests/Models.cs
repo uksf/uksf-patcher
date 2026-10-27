@@ -23,6 +23,9 @@ public static class Models
     public const string MortarsPbo = "tbd_mortars_105mm.pbo";
     public const string RoundHe = @"tbd_mortars_105mm_round_he\tbd_mortars_105mm_round_he.p3d";
 
+    public const string TigrPbo = "cup_wheeledvehicles_tigr.pbo";
+    public const string Tigr = @"cup\wheeledvehicles\cup_wheeledvehicles_tigr\model\cup_tigr.p3d";
+
     public const string EawsPbo = "EAWS_EF2000.pbo";
     public const string EawsFuselage = "EAWS_EF2000.p3d";
 

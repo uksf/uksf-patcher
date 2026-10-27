@@ -32,6 +32,7 @@ public static class OpRegistry
         ["add-translation"] = new AddTranslationOp(),
         ["remap-proxies"] = new RemapProxiesOp(),
         ["add-memory-proxies"] = new AddMemoryProxiesOp(),
+        ["restore-lod-proxies"] = new RestoreLodProxiesOp(),
         ["add-memory-point"] = new AddMemoryPointOp(),
         ["set-memory-point"] = new SetMemoryPointOp(),
         ["cut-seams"] = new CutSeamsOp(),
