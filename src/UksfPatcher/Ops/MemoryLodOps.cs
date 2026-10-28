@@ -148,6 +148,43 @@ public sealed class AddMemoryPointOp : OdolOp
     }
 }
 
+public sealed class SplitMemoryPointOp : OdolOp
+{
+    protected override void Edit(ODOL odol, JsonElement op, OpContext context)
+    {
+        var name = OpJson.String(op, "name");
+        var p = OpJson.Floats(op, "position", 3);
+        var boneFrom = OpJson.String(op, "boneFrom");
+        var mem = FindLod(odol, "memory", context);
+        var point = MemoryPoint.Single(mem, name, context);
+        var donor = mem.NamedSelections.Single(n => n == MemoryPoint.Single(mem, boneFrom, context)).SelectedVertices.Single();
+        var v = point.SelectedVertices.Single();
+        if (!mem.NamedSelections.Any(n => n != point && n.SelectedVertices.Contains(v)))
+        {
+            throw new PatchException($"{context.AssetPath}: memory point '{name}' is not shared; use set-memory-point");
+        }
+
+        var boneRefs = OdolGraph.BoneRefs(mem);
+        var split = MemoryLod.AppendVertex(mem, new Vector3(p[0], p[1], p[2]), mem.Clip[donor], mem.NormalsCompressed[donor], OdolGraph.Clone(boneRefs[donor]), boneRefs);
+        OdolGraph.SetBoneRefs(mem, boneRefs);
+        LibraryAccess.Set(point, nameof(NamedSelection.SelectedVertices), new TrackedArray<int>([split]));
+    }
+}
+
+public static class MemoryPoint
+{
+    public static NamedSelection Single(LOD mem, string name, OpContext context)
+    {
+        var point = mem.NamedSelections.SingleOrDefault(n => n.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            ?? throw new PatchException($"{context.AssetPath}: memory LOD has no selection '{name}'");
+        if (point.SelectedVertices.Count() != 1)
+        {
+            throw new PatchException($"{context.AssetPath}: memory selection '{name}' has {point.SelectedVertices.Count()} vertices, not one point");
+        }
+        return point;
+    }
+}
+
 public sealed class SetMemoryPointOp : OdolOp
 {
     protected override void Edit(ODOL odol, JsonElement op, OpContext context)

@@ -35,6 +35,7 @@ public static class OpRegistry
         ["restore-lod-proxies"] = new RestoreLodProxiesOp(),
         ["add-memory-point"] = new AddMemoryPointOp(),
         ["set-memory-point"] = new SetMemoryPointOp(),
+        ["split-memory-point"] = new SplitMemoryPointOp(),
         ["cut-seams"] = new CutSeamsOp(),
         ["uv-split"] = new UvSplitOp(),
         ["move-sections"] = new MoveSectionsOp(),
