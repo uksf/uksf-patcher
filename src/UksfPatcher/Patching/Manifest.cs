@@ -5,7 +5,7 @@ namespace UksfPatcher.Patching;
 
 public sealed class PatchException(string message) : Exception(message);
 
-public sealed record AssetPatch(string Path, string Sha256, IReadOnlyList<JsonElement> Ops, string? CopyOf = null);
+public sealed record AssetPatch(string Path, string Sha256, IReadOnlyList<JsonElement> Ops, string? CopyOf = null, bool Remove = false);
 
 public sealed class Manifest
 {
@@ -77,6 +77,18 @@ public sealed class Manifest
         {
             var path = RequiredString(a, "path", file);
             var sha = RequiredString(a, "sha256", file).ToLowerInvariant();
+            var remove = a.TryGetProperty("remove", out var r) && r.ValueKind == JsonValueKind.True;
+            if (remove)
+            {
+                if (a.TryGetProperty("ops", out _) || a.TryGetProperty("copyOf", out _))
+                {
+                    throw new PatchException($"{file}: {path}: a removed asset takes no \"ops\" or \"copyOf\"");
+                }
+
+                assets.Add(new AssetPatch(path, sha, [], Remove: true));
+                continue;
+            }
+
             var ops = Required(a, "ops", file).EnumerateArray().Select(o => o.Clone()).ToList();
             if (ops.Count == 0)
             {

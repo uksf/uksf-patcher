@@ -57,6 +57,8 @@ Output PBOs are byte-identical to the input apart from the edited entries and th
 
 `pristineSha256` is required. `path` matches case-insensitively, with or without the PBO prefix. Ops run in order on the asset bytes. JSON comments are allowed.
 
+To remove an entry, set `"remove": true` and give no `ops` or `copyOf`. `sha256` pins the entry, so an upstream change stops the run. Use it to drop a compiled `.sqfc` when a `text-replace` edits its `.sqf`, because Arma loads the `.sqfc` when both exist.
+
 To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that source asset, the ops run on a copy of it, and the result is added to the PBO at `path`. The source stays unchanged. The run fails if `path` already exists. Point config at the new path from a UKSF addon.
 
 ## Ops

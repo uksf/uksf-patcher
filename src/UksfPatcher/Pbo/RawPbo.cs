@@ -180,14 +180,12 @@ public sealed class RawPbo
 
     public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements) => Rebuild(replacements, []);
 
-    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements, IReadOnlyList<PboAddition> additions)
+    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements, IReadOnlyList<PboAddition> additions) =>
+        Rebuild(replacements, additions, new HashSet<int>());
+
+    public byte[] Rebuild(IReadOnlyDictionary<int, byte[]> replacements, IReadOnlyList<PboAddition> additions, IReadOnlySet<int> removals)
     {
         var header = Bytes.AsSpan(0, HeaderLength).ToArray();
-        if (additions.Count > 0)
-        {
-            header = WithAddedEntries(header, additions);
-        }
-
         foreach (var (index, data) in replacements)
         {
             var e = Entries[index];
@@ -196,9 +194,19 @@ public sealed class RawPbo
             BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(e.FieldsOffset + 16), (uint)data.Length);
         }
 
+        if (additions.Count > 0)
+        {
+            header = WithAddedEntries(header, additions);
+        }
+
+        if (removals.Count > 0)
+        {
+            header = PboRemoval.WithoutEntries(header, Entries.Where(e => removals.Contains(e.Index)), FieldsLength);
+        }
+
         using var output = new MemoryStream();
         output.Write(header);
-        foreach (var e in Entries)
+        foreach (var e in Entries.Where(e => !removals.Contains(e.Index)))
         {
             if (replacements.TryGetValue(e.Index, out var data))
             {

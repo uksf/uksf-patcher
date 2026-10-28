@@ -12,6 +12,7 @@ public static class PatchEngine
 
         var replacements = new Dictionary<int, byte[]>();
         var additions = new List<PboAddition>();
+        var removals = new HashSet<int>();
         foreach (var asset in manifest.Assets)
         {
             var where = $"{manifest.Pbo}:{asset.Path}";
@@ -30,7 +31,7 @@ public static class PatchEngine
                     throw new PatchException($"{manifest.Pbo}: copy target '{asset.Path}' already exists");
                 }
             }
-            else if (replacements.ContainsKey(entry.Index))
+            else if (replacements.ContainsKey(entry.Index) || removals.Contains(entry.Index))
             {
                 throw new PatchException($"{manifest.Pbo}: asset '{asset.Path}' is listed twice");
             }
@@ -41,6 +42,12 @@ public static class PatchEngine
             {
                 throw new PatchException(
                     $"{manifest.Pbo}: asset '{sourcePath}' does not match its pin: expected sha256 {asset.Sha256}, actual {actual}. Upstream changed the asset; review and re-pin the patch.");
+            }
+
+            if (asset.Remove)
+            {
+                removals.Add(entry.Index);
+                continue;
             }
 
             var context = new OpContext(manifest.Directory, where);
@@ -60,21 +67,38 @@ public static class PatchEngine
             }
         }
 
-        var output = Pbo(manifest.Pbo, () => pbo.Rebuild(replacements, additions));
-        if (additions.Count > 0)
+        var output = Pbo(manifest.Pbo, () => pbo.Rebuild(replacements, additions, removals));
+        if (additions.Count > 0 || removals.Count > 0)
         {
-            RequireAdditions(manifest.Pbo, pbo, output, additions);
+            RequireEntries(manifest.Pbo, pbo, output, additions, removals);
         }
 
         return output;
     }
 
-    private static void RequireAdditions(string label, RawPbo before, byte[] output, IReadOnlyList<PboAddition> additions)
+    private static void RequireEntries(string label, RawPbo before, byte[] output, IReadOnlyList<PboAddition> additions, IReadOnlySet<int> removals)
     {
-        var after = Pbo($"{label} after adding entries", () => RawPbo.Parse(output));
-        if (after.Entries.Count != before.Entries.Count + additions.Count)
+        var after = Pbo($"{label} after adding or removing entries", () => RawPbo.Parse(output));
+        var expected = before.Entries.Count + additions.Count - removals.Count;
+        if (after.Entries.Count != expected)
         {
-            throw new PatchException($"{label}: the rebuilt PBO has {after.Entries.Count} entries, expected {before.Entries.Count + additions.Count}");
+            throw new PatchException($"{label}: the rebuilt PBO has {after.Entries.Count} entries, expected {expected}");
+        }
+
+        foreach (var index in removals)
+        {
+            if (Pbo(label, () => after.Find(before.Entries[index].Name)) != null)
+            {
+                throw new PatchException($"{label}: the rebuilt PBO still contains the removed entry '{before.Entries[index].Name}'");
+            }
+        }
+
+        foreach (var e in before.Entries.Where(e => !removals.Contains(e.Index)))
+        {
+            if (Pbo(label, () => after.Find(e.Name)) == null)
+            {
+                throw new PatchException($"{label}: the rebuilt PBO lost the entry '{e.Name}'");
+            }
         }
 
         foreach (var addition in additions)
