@@ -100,6 +100,6 @@ dotnet test
 dotnet build src/UksfPatcher -c Release
 ```
 
-The project references `D:/Arma/_ref/UKSFTA-BIS` (BIS.Core, BIS.P3D, BIS.RTM) through relative project paths. The library's ODOL reader prints debug lines to stderr; the tool mutes stderr while it parses.
+The project references `D:/Arma/_ref/UKSFTA-BIS` (BIS.Core, BIS.P3D, BIS.RTM) through relative project paths. That folder is a clone of `https://github.com/uksf/bis-file-formats`, the UKSF fork of `UKSFTA/UKSFTA-BIS`. The fork writes zero-terminated strings as Latin-1, so models with non-ASCII paths round-trip. The library's ODOL reader prints debug lines to stderr; the tool mutes stderr while it parses.
 
 Example manifests for real defects are in `examples/patches`. See `docs/ingame-check.md` for the in-game check.
