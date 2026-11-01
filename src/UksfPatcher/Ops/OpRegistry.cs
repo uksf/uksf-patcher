@@ -36,6 +36,8 @@ public static class OpRegistry
         ["add-memory-point"] = new AddMemoryPointOp(),
         ["set-memory-point"] = new SetMemoryPointOp(),
         ["split-memory-point"] = new SplitMemoryPointOp(),
+        ["copy-selection-points"] = new CopySelectionPointsOp(),
+        ["split-selection"] = new SplitSelectionOp(),
         ["cut-seams"] = new CutSeamsOp(),
         ["uv-split"] = new UvSplitOp(),
         ["move-sections"] = new MoveSectionsOp(),
