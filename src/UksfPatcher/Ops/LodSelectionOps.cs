@@ -84,6 +84,14 @@ public sealed class SplitSelectionOp : OdolOp
         {
             throw new PatchException($"{context.AssetPath}: selection '{name}' has faces; split-selection only splits loose points");
         }
+        if (selection.Sections.Any())
+        {
+            throw new PatchException($"{context.AssetPath}: selection '{name}' has sections; split-selection only splits loose points");
+        }
+        if (selection.SelectedVerticesWeights.Any())
+        {
+            throw new PatchException($"{context.AssetPath}: selection '{name}' has vertex weights; split-selection only splits unweighted points");
+        }
 
         var vertices = selection.SelectedVertices.ToArray();
         var below = vertices.Where(v => Coordinate(lod.Vertices[v], axis) < keepBelow).ToArray();

@@ -1,3 +1,4 @@
+using BIS.Core;
 using BIS.P3D.ODOL;
 using UksfPatcher.Ops;
 using UksfPatcher.P3d;
@@ -60,6 +61,39 @@ public sealed class LodSelectionTests : IDisposable
         var e = Assert.Throws<PatchException>(() => Apply(Typhoon(), Split.Replace("\"keepBelow\":0", "\"keepBelow\":100")));
 
         Assert.Contains("leaves one side empty", e.Message);
+    }
+
+    private static byte[] WithMotor(Action<NamedSelection> change)
+    {
+        var odol = OdolFile.Parse(Typhoon(), "typhoon");
+        var lod = odol.Lods.Single(l => LodNames.Matches(l.Resolution, LodNames.Resolution("hitpoints")));
+        change(lod.NamedSelections.Single(n => n.Name == "motor"));
+        return OdolFile.Serialise(odol);
+    }
+
+    [Fact]
+    public void RefusesAWeightedSelection()
+    {
+        var model = WithMotor(s =>
+        {
+            var weights = Enumerable.Range(0, s.SelectedVertices.Count()).Select(i => (byte)(10 + i)).ToArray();
+            LibraryAccess.Set(s, nameof(NamedSelection.SelectedVerticesWeights), new TrackedArray<byte>(weights));
+            LibraryAccess.Set(s, nameof(NamedSelection.ExpectedSize), weights.Length);
+        });
+
+        var e = Assert.Throws<PatchException>(() => Apply(model, Split));
+
+        Assert.Contains("has vertex weights", e.Message);
+    }
+
+    [Fact]
+    public void RefusesASelectionWithSections()
+    {
+        var model = WithMotor(s => LibraryAccess.Set(s, nameof(NamedSelection.Sections), new TrackedArray<int>([0])));
+
+        var e = Assert.Throws<PatchException>(() => Apply(model, Split));
+
+        Assert.Contains("has sections", e.Message);
     }
 
     [Fact]
