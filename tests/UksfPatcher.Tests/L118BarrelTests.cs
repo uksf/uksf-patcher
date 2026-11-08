@@ -52,7 +52,7 @@ public sealed class L118BarrelTests
         var model = Apply(M119(), RemoveBrake.Replace("\"lod\":\"1\"", "\"lod\":\"5\"").Replace("\"faces\":464", "\"faces\":98"), stretch);
         var lowBand = "\"alongMin\":3.102,\"alongMax\":4.582,\"radius\":0.064,\"tolerance\":0.0045";
         var fit = ",\"fit\":{\"lod\":\"3\",\"alongMin\":3.1111,\"alongMax\":4.5742,\"radius\":0.0591,\"tolerance\":0.0015}";
-        string Low(string uvFrom) => "{\"op\":\"add-mesh\",\"lods\":[\"5\"],\"source\":\"L118_muzzle_90.p3d\",\"sourceAxis\":[0,0,3.75021,0,0,1]," + Axis +
+        string Low(string uvFrom) => "{\"op\":\"add-mesh\",\"lods\":[\"5\"],\"source\":\"L118_muzzle_94.p3d\",\"sourceAxis\":[0,0,3.75021,0,0,1]," + Axis +
             ",\"attachAlong\":4.5742,\"scale\":1.06,\"weldLoops\":[],\"bone\":\"barrel\",\"uvFrom\":{" + uvFrom + "}}";
 
         var e = Assert.Throws<PatchException>(() => Apply(model, Low(lowBand)));
