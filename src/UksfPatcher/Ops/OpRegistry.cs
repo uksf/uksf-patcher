@@ -47,6 +47,9 @@ public static class OpRegistry
         ["stretch-along-axis"] = new StretchAlongAxisOp(),
         ["remove-faces"] = new RemoveFacesOp(),
         ["add-mesh"] = new AddMeshOp(),
+        ["isolate-memory-selection"] = new IsolateMemorySelectionOp(),
+        ["add-selection-lod"] = new AddSelectionLodOp(),
+        ["add-points"] = new AddPointsOp(),
         ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
@@ -73,6 +76,11 @@ public static class OpJson
         op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
             ? v.GetString()!
             : throw new PatchException($"op is missing string \"{name}\": {op}");
+
+    public static int Int(JsonElement op, string name) =>
+        op.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number
+            ? v.GetInt32()
+            : throw new PatchException($"op is missing int \"{name}\": {op}");
 
     public static int Int(JsonElement op, string name, int fallback) =>
         op.TryGetProperty(name, out var v) ? v.GetInt32() : fallback;
