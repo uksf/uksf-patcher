@@ -47,6 +47,7 @@ public static class OpRegistry
         ["stretch-along-axis"] = new StretchAlongAxisOp(),
         ["remove-faces"] = new RemoveFacesOp(),
         ["add-mesh"] = new AddMeshOp(),
+        ["add-reverse-face"] = new AddReverseFaceOp(),
         ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
