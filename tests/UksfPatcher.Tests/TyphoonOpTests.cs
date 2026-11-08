@@ -36,6 +36,19 @@ public sealed class TyphoonOpTests(ITestOutputHelper log) : IDisposable
     }
 
     [Fact]
+    public void SetRotationRangeChangesOnlyTheNamedRotation()
+    {
+        var before = Parse(Fuselage());
+        var after = Parse(Apply(Fuselage(), """{"op":"set-rotation-range","animation":"towhook","angle0":-1.3,"angle1":1.75}"""));
+        var hook = after.Animations.AnimationClasses.Single(a => a.AnimName == "towhook");
+        var fan = after.Animations.AnimationClasses.Single(a => a.AnimName == "vrtule_0");
+        var originalFan = before.Animations.AnimationClasses.Single(a => a.AnimName == "vrtule_0");
+        Assert.Equal((-1.3f, 1.75f), (hook.Angle0, hook.Angle1));
+        Assert.Equal((originalFan.Angle0, originalFan.Angle1), (fan.Angle0, fan.Angle1));
+        Assert.Throws<PatchException>(() => Apply(Fuselage(), """{"op":"set-rotation-range","animation":"missing","angle0":0,"angle1":1}"""));
+    }
+
+    [Fact]
     public void BindSelectionWeightsOnlyTheBoxedTurbineDisc()
     {
         var before = Lod(Parse(Fuselage()), 0);

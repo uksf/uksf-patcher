@@ -26,6 +26,7 @@ public static class OpRegistry
         ["convex-hull-component"] = new ConvexHullComponentOp(),
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),
         ["set-animation-source"] = new SetAnimationSourceOp(),
+        ["set-rotation-range"] = new SetRotationRangeOp(),
         ["bind-selection"] = new BindSelectionOp(),
         ["translate-selection"] = new TranslateSelectionOp(),
         ["rebind-vertices"] = new RebindVerticesOp(),
