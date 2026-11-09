@@ -27,6 +27,7 @@ public static class OpRegistry
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),
         ["set-animation-source"] = new SetAnimationSourceOp(),
         ["set-rotation-range"] = new SetRotationRangeOp(),
+        ["move-rotation-axis"] = new MoveRotationAxisOp(),
         ["bind-selection"] = new BindSelectionOp(),
         ["translate-selection"] = new TranslateSelectionOp(),
         ["rebind-vertices"] = new RebindVerticesOp(),
