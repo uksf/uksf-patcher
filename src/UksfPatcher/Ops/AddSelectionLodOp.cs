@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json;
 using BIS.P3D.ODOL;
 using UksfPatcher.P3d;
@@ -47,18 +48,55 @@ public sealed class AddSelectionLodOp : OdolOp
 
         var lod = LodInsert.InsertClone(odol, from, LodNames.Resolution(lodName), indexField, context.AssetPath);
         var remap = kept.Select((face, i) => (face, i)).ToDictionary(p => p.face, p => p.i);
-        LibraryAccess.Set(lod.Polygons, nameof(Polygons.Faces), kept.Select(i => faces[i]).ToArray());
-        LibraryAccess.Set(lod.Polygons, nameof(Polygons.Unused1), (uint)kept.Sum(i => OdolFaces.Weight(faces[i])));
-        var section = lod.Sections[0];
-        LibraryAccess.Set(section, nameof(Section.FaceLowerIndex), 0);
-        LibraryAccess.Set(section, nameof(Section.FaceUpperIndex), (int)kept.Sum(i => OdolFaces.Weight(faces[i])));
-        LibraryAccess.Set(lod, nameof(LOD.Sections), new[] { section });
-        OdolGraph.SetRawProxies(lod, []);
-        lod.NamedSelections = selections.Select(s =>
+        var newFaces = kept.Select(i => faces[i]).ToList();
+        var named = selections.Select(s =>
         {
             var own = s.SelectedVertices.ToHashSet();
             var listed = kept.Where(i => faces[i].VertexIndices.All(own.Contains)).Select(i => remap[i]).ToArray();
             return MemoryLod.NewSelection(s.Name, listed, s.SelectedVertices.ToArray());
-        }).ToArray();
+        }).ToList();
+        AddQuads(lod, op, newFaces, named, context);
+        var bytes = newFaces.Sum(OdolFaces.Weight);
+        LibraryAccess.Set(lod.Polygons, nameof(Polygons.Faces), newFaces.ToArray());
+        LibraryAccess.Set(lod.Polygons, nameof(Polygons.Unused1), (uint)bytes);
+        var section = lod.Sections[0];
+        LibraryAccess.Set(section, nameof(Section.FaceLowerIndex), 0);
+        LibraryAccess.Set(section, nameof(Section.FaceUpperIndex), bytes);
+        LibraryAccess.Set(lod, nameof(LOD.Sections), new[] { section });
+        OdolGraph.SetRawProxies(lod, []);
+        lod.NamedSelections = named.ToArray();
     }
+
+    private static void AddQuads(LOD lod, JsonElement op, List<Polygon> faces, List<NamedSelection> named, OpContext context)
+    {
+        if (!op.TryGetProperty("quads", out var quads))
+        {
+            return;
+        }
+
+        var refs = OdolGraph.BoneRefs(lod);
+        if (refs.Count != lod.Vertices.Count)
+        {
+            refs = Enumerable.Range(0, lod.Vertices.Count).Select(_ => OdolGraph.EmptyBoneRef()).ToList();
+        }
+
+        foreach (var quad in quads.EnumerateArray())
+        {
+            var name = OpJson.String(quad, "name");
+            var points = quad.GetProperty("points").EnumerateArray().Select(p => p.EnumerateArray().Select(v => v.GetSingle()).ToArray()).ToArray();
+            if (points.Length != 4 || points.Any(p => p.Length != 3))
+            {
+                throw new PatchException($"{context.AssetPath}: quad '{name}' needs four x, y, z points");
+            }
+
+            var added = points.Select(p => MemoryLod.AppendVertex(lod, Point(p), lod.Clip[0], lod.NormalsCompressed[0], OdolGraph.EmptyBoneRef(), refs)).ToArray();
+            named.Add(MemoryLod.NewSelection(name, [faces.Count, faces.Count + 1], added));
+            faces.Add(OdolFaces.NewFace(added));
+            faces.Add(OdolFaces.NewFace(added.Reverse().ToArray()));
+        }
+
+        OdolGraph.SetBoneRefs(lod, refs);
+    }
+
+    private static Vector3 Point(float[] p) => new(p[0], p[1], p[2]);
 }

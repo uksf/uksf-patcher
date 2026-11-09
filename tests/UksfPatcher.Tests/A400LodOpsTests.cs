@@ -25,6 +25,27 @@ public sealed class A400LodOpsTests
     }
 
     [Fact]
+    public void AddsATwoSidedQuadToTheNewRoadwayLod()
+    {
+        var model = Models.Load(Models.EawsPbo, Models.EawsFuselage);
+        var source = OdolFile.Parse(model, "typhoon").Lods.Single(l => LodNames.Matches(l.Resolution, 1e13f));
+        var selection = source.NamedSelections.First(s => s.SelectedVertices.Count > 3
+            && source.Polygons.Faces.Count(f => f.VertexIndices.All(s.SelectedVertices.Contains)) > 0);
+        var faces = source.Polygons.Faces.Count(f => f.VertexIndices.All(selection.SelectedVertices.ToHashSet().Contains));
+        var json = $$"""{"op":"add-selection-lod","lod":"roadway","fromLod":"geometry","selections":["{{selection.Name}}"],"faces":{{faces}},"quads":[{"name":"floor","points":[[1,2,4],[1,2,-4],[-1,2,-4],[-1,2,4]]}]}""";
+
+        var after = OdolFile.Parse(OpRegistry.Apply(model, TestData.Op(json), TestData.Context()), "typhoon");
+        var roadway = after.Lods.Single(l => LodNames.Matches(l.Resolution, 3e15f));
+        var floor = roadway.NamedSelections.Single(s => s.Name == "floor");
+
+        Assert.Equal(faces + 2, roadway.Polygons.Faces.Length);
+        Assert.Equal(source.Vertices.Count + 4, roadway.Vertices.Count);
+        Assert.Equal(2, floor.SelectedFaces.Count);
+        Assert.Equal(roadway.Polygons.Faces[^2].VertexIndices.Reverse(), roadway.Polygons.Faces[^1].VertexIndices);
+        Assert.Equal((-1f, 2f, 4f), (roadway.Vertices[floor.SelectedVertices[3]].X, roadway.Vertices[floor.SelectedVertices[3]].Y, roadway.Vertices[floor.SelectedVertices[3]].Z));
+    }
+
+    [Fact]
     public void AddsANamedPointSelectionToTheHitPointsLod()
     {
         var model = Models.Load(Models.EawsPbo, Models.EawsFuselage);
