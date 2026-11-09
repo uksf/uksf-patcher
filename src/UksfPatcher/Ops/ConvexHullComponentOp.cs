@@ -1,5 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
+using BIS.Core;
+using BIS.Core.Math;
 using BIS.P3D.ODOL;
 using UksfPatcher.P3d;
 using UksfPatcher.Patching;
@@ -13,9 +15,15 @@ public sealed class ConvexHullComponentOp : OdolOp
     protected override void Edit(ODOL odol, JsonElement op, OpContext context)
     {
         var component = OpJson.String(op, "component");
+        var shear = op.TryGetProperty("shear", out var amount) && amount.ValueKind == JsonValueKind.Number ? amount.GetSingle() : 0f;
+        if (!float.IsFinite(shear) || Math.Abs(shear) > 0.2f)
+        {
+            throw new PatchException($"{context.AssetPath}: shear must be a finite number of at most 0.2");
+        }
+
         foreach (var lodName in OpJson.Strings(op, "lods"))
         {
-            Rebuild(FindLod(odol, lodName, context), component, $"{context.AssetPath}:{lodName}:{component}");
+            Rebuild(odol, FindLod(odol, lodName, context), component, shear, $"{context.AssetPath}:{lodName}:{component}");
         }
     }
 
@@ -39,7 +47,7 @@ public sealed class ConvexHullComponentOp : OdolOp
 
     public static Vector3 Position(LOD lod, int vertex) => new(lod.Vertices[vertex].X, lod.Vertices[vertex].Y, lod.Vertices[vertex].Z);
 
-    private static void Rebuild(LOD lod, string name, string where)
+    private static void Rebuild(ODOL odol, LOD lod, string name, float shear, string where)
     {
         var selection = lod.NamedSelections.SingleOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
             ?? throw new PatchException($"{where}: no such selection");
@@ -51,6 +59,27 @@ public sealed class ConvexHullComponentOp : OdolOp
         var ranges = OdolFaces.SectionFaceRanges(lod, where);
         var oldFaces = selection.SelectedFaces.ToHashSet();
         var vertexIds = selection.SelectedVertices.ToList();
+        var before = vertexIds.Select(v => Position(lod, v)).ToList();
+        var min = before.Aggregate(new Vector3(float.MaxValue), Vector3.Min);
+        var max = before.Aggregate(new Vector3(float.MinValue), Vector3.Max);
+        if (shear != 0)
+        {
+            var shared = lod.NamedSelections.Where(s => s != selection && s.Name.StartsWith("component", StringComparison.OrdinalIgnoreCase))
+                .SelectMany(s => s.SelectedVertices).ToHashSet();
+            if (vertexIds.Any(shared.Contains))
+            {
+                throw new PatchException($"{where}: shear would move a vertex shared with another component");
+            }
+
+            var zMid = (min.Z + max.Z) * 0.5f;
+            foreach (var id in vertexIds)
+            {
+                lod.Vertices[id].Y += shear * (lod.Vertices[id].Z - zMid);
+            }
+
+            LibraryAccess.Set(lod, nameof(LOD.Vertices), new TrackedArray<Vector3P>(lod.Vertices.ToArray()));
+        }
+
         var points = vertexIds.Select(v => Position(lod, v)).ToList();
         IReadOnlyList<HullTriangle> hull;
         try
@@ -104,6 +133,16 @@ public sealed class ConvexHullComponentOp : OdolOp
 
         OdolFaces.Replace(lod, faces.ToArray(), newRanges);
         RequireConvex(lod, hullIndices, points, where, outward);
+        if (shear == 0)
+        {
+            return;
+        }
+
+        var refreshed = ConvexCache.Refresh(odol.Extra, min, max, shear);
+        if (refreshed == 0)
+        {
+            throw new PatchException($"{where}: no cooked convex component matches the sheared hull");
+        }
     }
 
     private static void RequireConvex(LOD lod, List<int> hullIndices, List<Vector3> points, string where, bool outward)
