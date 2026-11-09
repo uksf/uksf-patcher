@@ -80,24 +80,4 @@ public sealed class FlameStretchTests : IDisposable
 
         Assert.Contains("already has an animation", e.Message);
     }
-
-    [Fact]
-    public void BeforeInsertsAheadOfTheBonesExistingAnimations()
-    {
-        var model = Parse(Fuselage());
-        var hook = Array.FindIndex(model.Animations.AnimationClasses, a => a.AnimName == "towhook");
-        var bone = model.Animations.Anims2Bones[0][hook];
-        var name = model.ModelInfo.Skeleton.SkeletonBoneNames[bone].BoneName;
-        var prior = model.Animations.Bones2Anims[0][bone].ToArray();
-        var json = $$"""{"op":"add-translation","animation":"towhook_lift","bone":"{{name}}","animationSource":"hook_lift","minValue":0,"maxValue":1,"offset0":0,"offset1":0.2,"axis":[0,1,0],"before":true}""";
-
-        var after = Parse(Apply(Fuselage(), json));
-        var added = Array.FindIndex(after.Animations.AnimationClasses, a => a.AnimName == "towhook_lift");
-        var order = after.Animations.Bones2Anims[0][bone];
-
-        Assert.NotEmpty(prior);
-        Assert.Equal((uint)added, order[0]);
-        Assert.Equal(prior, order.Skip(1).ToArray());
-        Assert.Throws<PatchException>(() => Apply(Fuselage(), json.Replace("true", "1")));
-    }
 }

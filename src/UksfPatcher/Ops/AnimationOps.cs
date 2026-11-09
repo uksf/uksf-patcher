@@ -136,32 +136,13 @@ public sealed class AddTranslationOp : OdolOp
         LibraryAccess.Set(anim, nameof(AnimationClass.Offset0), OpJson.Float(op, "offset0"));
         LibraryAccess.Set(anim, nameof(AnimationClass.Offset1), OpJson.Float(op, "offset1"));
 
-        var before = Before(op, context);
         var index = animations.AnimationClasses.Length;
         LibraryAccess.Set(animations, nameof(Animations.AnimationClasses), animations.AnimationClasses.Append(anim).ToArray());
         for (var j = 0; j < animations.Bones2Anims.Length; j++)
         {
-            var existing = animations.Bones2Anims[j][skel];
-            animations.Bones2Anims[j][skel] = before
-                ? new[] { (uint)index }.Concat(existing).ToArray()
-                : existing.Append((uint)index).ToArray();
+            animations.Bones2Anims[j][skel] = animations.Bones2Anims[j][skel].Append((uint)index).ToArray();
             animations.Anims2Bones[j] = animations.Anims2Bones[j].Append(skel).ToArray();
             animations.AxisData[j] = animations.AxisData[j].Append([new Vector3P(0, 0, 0), new Vector3P(axis[0], axis[1], axis[2])]).ToArray();
         }
-    }
-
-    private static bool Before(JsonElement op, OpContext context)
-    {
-        if (!op.TryGetProperty("before", out var flag))
-        {
-            return false;
-        }
-
-        if (flag.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
-        {
-            throw new PatchException($"{context.AssetPath}: before must be a boolean");
-        }
-
-        return flag.GetBoolean();
     }
 }

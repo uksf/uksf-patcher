@@ -72,7 +72,7 @@ To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that s
 | `set-skeleton-name` | `from` (current name, checked), `to` (non-empty) | ODOL v73/74 |
 | `set-rotation-range` | `animation`, `angle0`, `angle1` (radians) | ODOL v73/74 |
 | `rebind-vertices` | `lod`, `section`, `from`, `to` (bones), `box` (x/y/z min-max), `vertices` (exact count) | ODOL v73/74 |
-| `add-translation` | `animation`, `bone`, `animationSource`, `minValue`, `maxValue`, `offset0`, `offset1`, `axis`, `address` (default clamp), `before` (default false; true inserts ahead of that bone's existing animations) | ODOL v73/74 |
+| `add-translation` | `animation`, `bone`, `animationSource`, `minValue`, `maxValue`, `offset0`, `offset1`, `axis`, `address` (default clamp) | ODOL v73/74 |
 | `strip-animations` | `sources`: the exact set of animation sources the model uses (checked) | ODOL v73-75 |
 | `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
 | `convex-hull-component` | `lods`, `component` | ODOL v73/74 |
