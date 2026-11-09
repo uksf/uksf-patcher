@@ -48,6 +48,7 @@ public static class OpRegistry
         ["remove-faces"] = new RemoveFacesOp(),
         ["add-mesh"] = new AddMeshOp(),
         ["add-label-quads"] = new AddLabelQuadsOp(),
+        ["add-reverse-face"] = new AddReverseFaceOp(),
         ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
