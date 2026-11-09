@@ -53,7 +53,7 @@ public sealed class AddLabelQuadsOp : OdolOp
         }
     }
 
-    private sealed record Quad(Vector3[] Corners, Vector3 Normal);
+    private sealed record Quad(Vector3[] Corners, Vector3 Normal, Vector2[] Uv);
 
     private sealed record Label(string Selection, Quad[] Quads);
 
@@ -82,10 +82,30 @@ public sealed class AddLabelQuadsOp : OdolOp
                     throw new PatchException($"{context.AssetPath}: label quad corners are degenerate or parallel to its normal");
                 }
 
-                return new Quad(corners, normal);
+                return new Quad(corners, normal, Uvs(q, context.AssetPath));
             }).ToArray();
             return new Label(OpJson.String(l, "selection"), quads);
         }).ToList();
+    }
+
+    private static Vector2[] Uvs(JsonElement quad, string asset)
+    {
+        if (!quad.TryGetProperty("uv", out var uv))
+        {
+            return CornerUv;
+        }
+
+        var pts = uv.EnumerateArray().Select(c =>
+        {
+            var f = c.EnumerateArray().Select(x => x.GetSingle()).ToArray();
+            return f.Length == 2 && float.IsFinite(f[0] + f[1]) ? new Vector2(f[0], f[1]) : new Vector2(float.NaN);
+        }).ToArray();
+        if (pts.Length != 4 || pts.Any(p => float.IsNaN(p.X)))
+        {
+            throw new PatchException($"{asset}: label quad uv needs 4 finite [u, v] pairs");
+        }
+
+        return pts;
     }
 
     private static Vector3 Point(JsonElement c)
@@ -151,7 +171,7 @@ public sealed class AddLabelQuadsOp : OdolOp
 
                 foreach (var set in uvs)
                 {
-                    set.Add(CornerUv[k]);
+                    set.Add(quad.Uv[k]);
                 }
             }
 
