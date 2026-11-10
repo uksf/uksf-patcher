@@ -24,8 +24,13 @@ public static class ConvexCache
                 continue;
             }
 
+            var direct = Direct(chunk, min, max);
             var mirrored = Mirror(chunk, min, max);
-            if (!Direct(chunk, min, max) && !mirrored)
+            if (direct && mirrored)
+            {
+                throw new PatchException("convex cache orientation is ambiguous");
+            }
+            if (!direct && !mirrored)
             {
                 continue;
             }
@@ -173,6 +178,8 @@ public static class ConvexCache
             WriteV(extra, i + 12, now.Max);
             return;
         }
+
+        throw new PatchException("convex cache bounds record not found");
     }
 
     private static Vector3 ReadV(byte[] extra, int at) => new(Read(extra, at), Read(extra, at + 4), Read(extra, at + 8));

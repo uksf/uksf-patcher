@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using UksfPatcher.P3d;
+using UksfPatcher.Patching;
 
 namespace UksfPatcher.Tests;
 
@@ -45,6 +46,23 @@ public class ConvexCacheTests
 
         Assert.Equal(0, updated);
         Assert.Equal(before, extra);
+    }
+
+    [Fact]
+    public void SymmetricHullRejectsAmbiguousOrientation()
+    {
+        var extra = Chunk(new Vector3(-1, 1, -2), new Vector3(1, 1, -2), new Vector3(1, 1, 2), new Vector3(-1, 1, 2));
+
+        Assert.Throws<PatchException>(() => ConvexCache.Refresh(extra, new Vector3(-1, 1, -2), new Vector3(1, 1, 2), 0.05f));
+    }
+
+    [Fact]
+    public void MissingBoundsRecordFailsRefresh()
+    {
+        var extra = Chunk(new Vector3(0, 1, 0), new Vector3(2, 1, 0), new Vector3(2, 1, 4), new Vector3(0, 1, 4));
+        Array.Clear(extra, extra.Length - 24, 24);
+
+        Assert.Throws<PatchException>(() => ConvexCache.Refresh(extra, new Vector3(0, 1, 0), new Vector3(2, 1, 4), 0.05f));
     }
 
     private static byte[] Chunk(params Vector3[] verts)
