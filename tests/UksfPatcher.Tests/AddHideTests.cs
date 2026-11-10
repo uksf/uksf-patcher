@@ -15,7 +15,7 @@ public sealed class AddHideTests
         var index = Array.FindIndex(after.Animations.AnimationClasses, a => a.AnimName == "toe_hide");
         Assert.True(index >= 0);
         var animation = after.Animations.AnimationClasses[index];
-        Assert.Equal((9u, "toe_hide", 0.5f), (animation.AnimType, animation.AnimSource, animation.HideValue));
+        Assert.Equal((9u, "toe_hide", 0.5f, -1f), (animation.AnimType, animation.AnimSource, animation.HideValue, animation.Unused55));
         var bone = Array.FindIndex(after.ModelInfo.Skeleton.SkeletonBoneNames, b => b.BoneName.Equals("ramp_bottom2", StringComparison.OrdinalIgnoreCase));
         Assert.True(bone >= 0);
         foreach (var map in after.Animations.Bones2Anims) Assert.Contains((uint)index, map[bone]);

@@ -29,6 +29,7 @@ public sealed class AddHideOp : OdolOp
         LibraryAccess.Set(anim, nameof(AnimationClass.MinValue), 0f);
         LibraryAccess.Set(anim, nameof(AnimationClass.MaxValue), 1f);
         LibraryAccess.Set(anim, nameof(AnimationClass.HideValue), 0.5f);
+        LibraryAccess.Set(anim, nameof(AnimationClass.Unused55), -1f);
         var index = animations.AnimationClasses.Length;
         LibraryAccess.Set(animations, nameof(Animations.AnimationClasses), animations.AnimationClasses.Append(anim).ToArray());
         for (var j = 0; j < animations.Bones2Anims.Length; j++)
