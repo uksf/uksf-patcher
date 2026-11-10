@@ -55,6 +55,7 @@ public static class OpRegistry
         ["add-selection-lod"] = new AddSelectionLodOp(),
         ["add-points"] = new AddPointsOp(),
         ["add-label-quads"] = new AddLabelQuadsOp(),
+        ["add-reverse-face"] = new AddReverseFaceOp(),
         ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
