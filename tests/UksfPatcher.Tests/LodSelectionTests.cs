@@ -56,6 +56,28 @@ public sealed class LodSelectionTests : IDisposable
     }
 
     [Fact]
+    public void AddsNamedLoosePointsAtTheGivenPositions()
+    {
+        var model = Typhoon();
+        var before = HitPoints(model);
+        var after = HitPoints(Apply(model, """{"op":"add-selection-points","lod":"hitpoints","name":"fuel tanks","points":[[1.5,2,-0.5],[-1.5,2,-0.5]]}"""));
+
+        var added = Points(after, "fuel tanks");
+        Assert.Equal(before.Vertices.Count + 2, after.Vertices.Count);
+        Assert.Empty(after.Polygons.Faces);
+        Assert.Equal((1.5f, 2f, -0.5f), (after.Vertices[added[0]].X, after.Vertices[added[0]].Y, after.Vertices[added[0]].Z));
+        Assert.Equal(-1.5f, after.Vertices[added[1]].X);
+    }
+
+    [Fact]
+    public void RefusesAPointWithoutThreeCoordinates()
+    {
+        var e = Assert.Throws<PatchException>(() => Apply(Typhoon(), """{"op":"add-selection-points","lod":"hitpoints","name":"fuel tanks","points":[[1,2]]}"""));
+
+        Assert.Contains("needs [x, y, z]", e.Message);
+    }
+
+    [Fact]
     public void RefusesASplitThatLeavesOneSideEmpty()
     {
         var e = Assert.Throws<PatchException>(() => Apply(Typhoon(), Split.Replace("\"keepBelow\":0", "\"keepBelow\":100")));

@@ -22,18 +22,7 @@ public sealed class CopySelectionPointsOp : OdolOp
         {
             throw new PatchException($"{context.AssetPath}: shrink must be between 0 and 1");
         }
-        if (target.Polygons.Faces.Length != 0)
-        {
-            throw new PatchException($"{context.AssetPath}: target LOD has faces; copy-selection-points only adds loose points");
-        }
-        if (target.Vertices.Count == 0)
-        {
-            throw new PatchException($"{context.AssetPath}: target LOD has no vertex to copy point flags from");
-        }
-        if (target.NamedSelections.Any(n => n.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-        {
-            throw new PatchException($"{context.AssetPath}: target LOD already has selection '{name}'");
-        }
+        LoosePoints.Check(target, name, context);
 
         var source = fromLod.NamedSelections.SingleOrDefault(n => n.Name.Equals(fromName, StringComparison.OrdinalIgnoreCase))
             ?? throw new PatchException($"{context.AssetPath}: source LOD has no selection '{fromName}'");
@@ -50,14 +39,62 @@ public sealed class CopySelectionPointsOp : OdolOp
             throw new PatchException($"{context.AssetPath}: copy-selection-points '{name}' made {points.Count} points, manifest expects {expected}");
         }
 
+        LoosePoints.Add(target, name, points);
+    }
+
+    private static Vector3 ToVector(Vector3P p) => new(p.X, p.Y, p.Z);
+}
+
+public sealed class AddSelectionPointsOp : OdolOp
+{
+    protected override void Edit(ODOL odol, JsonElement op, OpContext context)
+    {
+        var target = FindLod(odol, OpJson.String(op, "lod"), context);
+        var name = OpJson.String(op, "name");
+        LoosePoints.Check(target, name, context);
+        var points = op.GetProperty("points").EnumerateArray().Select(p =>
+        {
+            var c = p.EnumerateArray().Select(v => v.GetSingle()).ToArray();
+            if (c.Length != 3)
+            {
+                throw new PatchException($"{context.AssetPath}: add-selection-points '{name}' needs [x, y, z] for every point");
+            }
+            return new Vector3(c[0], c[1], c[2]);
+        }).ToList();
+        if (points.Count == 0)
+        {
+            throw new PatchException($"{context.AssetPath}: add-selection-points '{name}' has no points");
+        }
+        LoosePoints.Add(target, name, points);
+    }
+}
+
+internal static class LoosePoints
+{
+    public static void Check(LOD target, string name, OpContext context)
+    {
+        if (target.Polygons.Faces.Length != 0)
+        {
+            throw new PatchException($"{context.AssetPath}: target LOD has faces; only loose points can be added");
+        }
+        if (target.Vertices.Count == 0)
+        {
+            throw new PatchException($"{context.AssetPath}: target LOD has no vertex to copy point flags from");
+        }
+        if (target.NamedSelections.Any(n => n.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new PatchException($"{context.AssetPath}: target LOD already has selection '{name}'");
+        }
+    }
+
+    public static void Add(LOD target, string name, IReadOnlyList<Vector3> points)
+    {
         var donor = 0;
         var boneRefs = OdolGraph.BoneRefs(target);
         var added = points.Select(p => MemoryLod.AppendVertex(target, p, target.Clip[donor], target.NormalsCompressed[donor], OdolGraph.Clone(boneRefs[donor]), boneRefs)).ToArray();
         OdolGraph.SetBoneRefs(target, boneRefs);
         target.NamedSelections = target.NamedSelections.Append(MemoryLod.NewSelection(name, [], added)).ToArray();
     }
-
-    private static Vector3 ToVector(Vector3P p) => new(p.X, p.Y, p.Z);
 }
 
 public sealed class SplitSelectionOp : OdolOp
