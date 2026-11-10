@@ -55,9 +55,10 @@ public static class ConvexCache
         chunk = default;
         var version = BinaryPrimitives.ReadInt32LittleEndian(extra.AsSpan(at + 4));
         var verts = BinaryPrimitives.ReadInt32LittleEndian(extra.AsSpan(at + 8));
+        var edges = BinaryPrimitives.ReadInt32LittleEndian(extra.AsSpan(at + 12));
         var polys = BinaryPrimitives.ReadInt32LittleEndian(extra.AsSpan(at + 16));
         var indices = BinaryPrimitives.ReadInt32LittleEndian(extra.AsSpan(at + 20));
-        if (version is < 1 or > 32 || verts is < 4 or > 64 || polys is < 1 or > 64 || indices < polys || indices > polys * 16)
+        if (version is < 1 or > 32 || verts is < 4 or > 64 || polys is < 1 or > 64 || edges != verts + polys - 2 || indices < polys || indices > polys * 16)
         {
             return false;
         }
@@ -70,7 +71,7 @@ public static class ConvexCache
             return false;
         }
 
-        chunk = new Chunk(vertAt, verts, polyAt, polys, indexAt, indices, Bounds(extra, vertAt, verts));
+        chunk = new Chunk(vertAt, verts, edges, polyAt, polys, indexAt, indices, Bounds(extra, vertAt, verts));
         return true;
     }
 
@@ -166,21 +167,21 @@ public static class ConvexCache
 
     private static void WriteBounds(byte[] extra, Chunk chunk, Vector3 oldMin, Vector3 oldMax, (Vector3 Min, Vector3 Max) now)
     {
-        var end = Math.Min(extra.Length, chunk.IndexAt + chunk.Indices + 400);
-        for (var i = chunk.IndexAt + chunk.Indices; i + 24 <= end; i += 4)
+        var at = CookedAabb(chunk);
+        if (at < chunk.IndexAt || at + 24 > extra.Length || ReadU32(extra, at - 4) != 0
+            || !Near(ReadV(extra, at), oldMin) || !Near(ReadV(extra, at + 12), oldMax))
         {
-            if (!Near(ReadV(extra, i), oldMin) || !Near(ReadV(extra, i + 12), oldMax))
-            {
-                continue;
-            }
-
-            WriteV(extra, i, now.Min);
-            WriteV(extra, i + 12, now.Max);
-            return;
+            throw new PatchException("convex cache bounds record not found");
         }
 
-        throw new PatchException("convex cache bounds record not found");
+        WriteV(extra, at, now.Min);
+        WriteV(extra, at + 12, now.Max);
     }
+
+    private static int CookedAabb(Chunk chunk) =>
+        chunk.IndexAt + chunk.Indices + chunk.Edges * 2 + chunk.Verts * 3 + 4;
+
+    private static uint ReadU32(byte[] extra, int at) => at < 0 ? uint.MaxValue : BinaryPrimitives.ReadUInt32LittleEndian(extra.AsSpan(at));
 
     private static Vector3 ReadV(byte[] extra, int at) => new(Read(extra, at), Read(extra, at + 4), Read(extra, at + 8));
 
@@ -197,10 +198,11 @@ public static class ConvexCache
 
     private struct Chunk
     {
-        public Chunk(int vertAt, int verts, int polyAt, int polys, int indexAt, int indices, (Vector3 Min, Vector3 Max) bounds)
+        public Chunk(int vertAt, int verts, int edges, int polyAt, int polys, int indexAt, int indices, (Vector3 Min, Vector3 Max) bounds)
         {
             VertAt = vertAt;
             Verts = verts;
+            Edges = edges;
             PolyAt = polyAt;
             Polys = polys;
             IndexAt = indexAt;
@@ -210,6 +212,7 @@ public static class ConvexCache
 
         public int VertAt { get; }
         public int Verts { get; }
+        public int Edges { get; }
         public int PolyAt { get; }
         public int Polys { get; }
         public int IndexAt { get; }
