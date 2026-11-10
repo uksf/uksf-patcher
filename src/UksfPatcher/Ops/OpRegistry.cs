@@ -22,6 +22,7 @@ public static class OpRegistry
         ["set-bone-parent"] = new SetBoneParentOp(),
         ["set-skeleton-name"] = new SetSkeletonNameOp(),
         ["strip-animations"] = new StripAnimationsOp(),
+        ["add-hide"] = new AddHideOp(),
         ["remove-component"] = new RemoveComponentOp(),
         ["convex-hull-component"] = new ConvexHullComponentOp(),
         ["remove-degenerate-faces"] = new RemoveDegenerateFacesOp(),

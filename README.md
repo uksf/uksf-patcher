@@ -74,6 +74,7 @@ To add a new entry, set `copyOf` to an existing asset. `sha256` then pins that s
 | `rebind-vertices` | `lod`, `section`, `from`, `to` (bones), `box` (x/y/z min-max), `vertices` (exact count) | ODOL v73/74 |
 | `move-rotation-axis` | `animation`, `selection` (two unshared memory points), `offset` (three components) | ODOL v73/74; moves the memory axis and every stored LOD axis origin |
 | `add-translation` | `animation`, `bone`, `animationSource`, `minValue`, `maxValue`, `offset0`, `offset1`, `axis`, `address` (default clamp) | ODOL v73/74 |
+| `add-hide` | `animation`, `bone`, `animationSource` | ODOL v73/74; hides at source phase 0.5 and above |
 | `strip-animations` | `sources`: the exact set of animation sources the model uses (checked) | ODOL v73-75 |
 | `remove-component` | `lod`, `components`, `requireProxyFaces` (default true: every face of the component must be a proxy face) | ODOL v73/74 |
 | `convex-hull-component` | `lods`, `component`, optional `shear` (at most 0.2; raises vertices by `shear * (z - zMid)` and refreshes the cooked convex cache) | ODOL v73/74 |
