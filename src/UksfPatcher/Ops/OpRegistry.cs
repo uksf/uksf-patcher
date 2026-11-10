@@ -54,6 +54,7 @@ public static class OpRegistry
         ["isolate-memory-selection"] = new IsolateMemorySelectionOp(),
         ["add-selection-lod"] = new AddSelectionLodOp(),
         ["add-points"] = new AddPointsOp(),
+        ["add-label-quads"] = new AddLabelQuadsOp(),
         ["rebuild-shadow-volume"] = new RebuildShadowVolumeOp(),
     };
 
