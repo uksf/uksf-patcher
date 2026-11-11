@@ -1,5 +1,7 @@
 # uksf-patcher
 
+**Frozen at faf2244.** The production patcher is the Rust port in [uksf/tooling](https://github.com/uksf/tooling) (`patcher/`, release v0.3.0 onwards), which gives identical output to this C# version on every production manifest. Add new patch ops there, not here.
+
 Patches Arma 3 dependency PBOs in place from declarative, hash-pinned manifests. Nobody edits a dependency PBO by hand: the manifests are the source of truth, and the modpack build runs this CLI before it signs the dependencies.
 
 ## Usage
